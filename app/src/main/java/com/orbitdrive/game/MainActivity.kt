@@ -142,6 +142,9 @@ class MainActivity : ComponentActivity() {
         }
         Box(Modifier.weight(1f).fillMaxWidth().background(Card, RoundedCornerShape(17.dp))) {
             RangeArt(game, Modifier.fillMaxSize())
+            if (game.electrifiedFor > 0) Text("⚡ ELECTRIFIED  ${"%.1f".format(game.electrifiedFor)}s",
+                Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp).background(Color(0xff12394d), RoundedCornerShape(12.dp)).padding(8.dp),
+                color = Color(0xffbdf6ff), fontWeight = FontWeight.Black, fontSize = 12.sp)
             game.nextPlanet?.let { planet ->
                 Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(12.dp)
                     .background(Color.Black.copy(alpha = .55f), RoundedCornerShape(11.dp)).padding(10.dp)) {
@@ -253,6 +256,17 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
         drawCircle(Color.Black.copy(alpha = .25f), radius = 12f, center = Offset(ballX, ground))
         if (game.phase == Phase.FLYING) drawLine(Mint.copy(alpha = .65f), Offset(ballX - min(130f, (game.speed * .3).toFloat()), ballY + 20), Offset(ballX - 8, ballY + 2), strokeWidth = 6f)
         val ball = game.ball
+        if (game.electrifiedFor > 0) {
+            val shimmer = 3f + (game.electrifiedFor.toFloat() * 5f) % 6f
+            drawCircle(Color(0xffb3f7ff).copy(alpha = .18f), radius = 20f + shimmer, center = Offset(ballX, ballY))
+            drawCircle(Color(0xff70dfff), radius = 15f, center = Offset(ballX, ballY), style = Stroke(width = 2.5f))
+            repeat(6) { i ->
+                val angle = i * PI / 3 + game.electrifiedFor * 7
+                val p1 = Offset(ballX + cos(angle).toFloat() * 16f, ballY + sin(angle).toFloat() * 16f)
+                val p2 = Offset(ballX + cos(angle + .2).toFloat() * 25f, ballY + sin(angle + .2).toFloat() * 25f)
+                drawLine(Color(0xffd7ffff), p1, p2, strokeWidth = 2f)
+            }
+        }
         drawCircle(ball.tint, radius = 11f, center = Offset(ballX, ballY))
         drawCircle(ball.stripe.copy(alpha = .8f), radius = 11f, center = Offset(ballX, ballY), style = Stroke(width = 2f))
         val spin = (game.distance * .12).toFloat()
@@ -262,6 +276,27 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
             val label = Paint().apply { isAntiAlias = true; color = android.graphics.Color.rgb(30, 38, 55);
                 textSize = 10f; textAlign = Paint.Align.CENTER; typeface = android.graphics.Typeface.DEFAULT_BOLD }
             canvas.nativeCanvas.drawText(ball.mark, ballX, ballY + 3f, label)
+        }
+        if (game.lightningFlashFor > 0) {
+            val flash = (game.lightningFlashFor / .38).toFloat().coerceIn(0f, 1f)
+            drawCircle(Color(0xfff6f9b0).copy(alpha = flash * .35f), 35f + (1 - flash) * 28f, Offset(ballX, ballY))
+            val bolt = androidx.compose.ui.graphics.Path().apply {
+                moveTo(ballX - 32, 0f); lineTo(ballX + 13, ballY * .36f)
+                lineTo(ballX - 15, ballY * .55f); lineTo(ballX + 19, ballY * .71f)
+                lineTo(ballX - 6, ballY - 28); lineTo(ballX, ballY)
+            }
+            drawPath(bolt, Color(0xfffff0a2).copy(alpha = flash), style = Stroke(width = 6f * flash + 2f))
+            drawPath(bolt, Color.White.copy(alpha = flash), style = Stroke(width = 2f))
+        }
+        if (game.planeSpriteFor > 0) {
+            val appear = (game.planeSpriteFor / 1.8).toFloat().coerceIn(0f, 1f)
+            val px = ballX - 72 + (1 - appear) * 32f; val py = ballY - 42 - (1 - appear) * 10f
+            drawLine(Color.White.copy(alpha = appear * .5f), Offset(px + 30, py + 13), Offset(ballX, ballY), strokeWidth = 2f)
+            drawRoundRect(Color(0xffe7e9ee), Offset(px, py), Size(65f, 15f), androidx.compose.ui.geometry.CornerRadius(8f))
+            drawRect(Color(0xff5a8ed4), Offset(px + 21, py + 7), Size(27f, 12f))
+            drawRect(Color(0xffd0d8e5), Offset(px + 4, py - 16), Size(7f, 18f))
+            drawCircle(Color(0xff213d69), 4f, Offset(px + 55, py + 7))
+            drawLine(Color.White, Offset(px + 65, py - 10), Offset(px + 65, py + 24), strokeWidth = 3f)
         }
         if (game.phase == Phase.READY || game.phase == Phase.CHARGING) {
             val gx = ballX - 38f
@@ -288,9 +323,9 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
                 }
             }
         }
-        game.obstacles.forEach { obstacle ->
+        game.obstacles.forEachIndexed { obstacleIndex, obstacle ->
             val x = ballX + ((obstacle.at - game.distance) * .55).toFloat()
-            if (x in -30f..(size.width + 30f) && game.distance < 7000) {
+            if (x in -30f..(size.width + 30f) && game.distance < 7000 && !game.obstacleBroken(obstacleIndex)) {
                 val h = (obstacle.height * 3).toFloat()
                 if (obstacle.name.contains("rock")) drawCircle(Color(0xff727b84), 13f, Offset(x, ground - 5))
                 else { drawRect(Color(0xff40566a), Offset(x - 12, ground - h), Size(24f, h));
@@ -310,12 +345,49 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
                 }
             }
         }
+        game.planetImpactID?.let { id ->
+            if (game.planetEffectFor > 0) {
+                val planet = game.planets[id]
+                val progress = (1 - game.planetEffectFor / 1.8).toFloat().coerceIn(0f, 1f)
+                val center = Offset(size.width * .59f, ground * .42f)
+                val radius = 45f + id * 3f
+                drawCircle(planet.color.copy(alpha = if (game.planetShattered && progress > .48f) (1 - progress) * 1.8f else 1f), radius, center)
+                // Ball rushes into the core, then radial fractures and fragments fly out.
+                if (progress < .46f) {
+                    val incoming = Offset(ballX + (center.x - ballX) * progress / .46f, ballY + (center.y - ballY) * progress / .46f)
+                    drawLine(Mint.copy(alpha = .8f), Offset(ballX - 80, ballY + 15), incoming, strokeWidth = 8f)
+                    drawCircle(game.ball.tint, 12f, incoming)
+                }
+                repeat(7) { i ->
+                    val angle = i * 2 * PI / 7
+                    val from = Offset(center.x + cos(angle).toFloat() * 5f, center.y + sin(angle).toFloat() * 5f)
+                    val to = Offset(center.x + cos(angle + .3).toFloat() * radius * min(1f, progress * 2),
+                        center.y + sin(angle + .3).toFloat() * radius * min(1f, progress * 2))
+                    drawLine(Color(0xff1c1832), from, to, strokeWidth = 3f + progress * 2f)
+                    if (game.planetShattered && progress > .4f) {
+                        val travel = (progress - .4f) * 155f
+                        val fragment = Offset(center.x + cos(angle).toFloat() * (radius + travel),
+                            center.y + sin(angle).toFloat() * (radius + travel))
+                        drawCircle(planet.color.copy(alpha = 1 - progress), 8f + (i % 3) * 3f, fragment)
+                    }
+                }
+                if (game.planetShattered && progress > .4f) {
+                    drawCircle(Color.White.copy(alpha = (1 - progress) * .55f), (progress - .4f) * 150f, center, style = Stroke(width = 10f))
+                    drawCircle(Color(0xffffd189).copy(alpha = (1 - progress) * .3f), (progress - .4f) * 100f, center)
+                }
+            }
+        }
+
     }
 }
 
 private fun nodePosition(node: ResearchNode): Offset {
-    val angle = -PI / 2 + node.branch.ordinal * PI / 4 + when (node.tier) { 1, 3 -> -.10; 2, 4 -> .10; else -> 0.0 }
-    val radius = 100f + node.tier * 75f
+    val angle = -PI / 2 + node.branch.ordinal * PI / 4 + when (node.tier) {
+        1, 3, 8, 10, 13, 16, 18, 21 -> -.075
+        2, 4, 9, 11, 14, 17, 19, 22 -> .075
+        else -> 0.0
+    }
+    val radius = 100f + node.tier * 65f
     return Offset((cos(angle) * radius).toFloat(), (sin(angle) * radius).toFloat())
 }
 
@@ -333,14 +405,23 @@ private fun nodePosition(node: ResearchNode): Offset {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("RESEARCH CONSTELLATION", color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.Black)
-                Text("${ResearchTree.all.count(game::owns)}/64 • $${game.format(game.cash)} • drag to explore", color = Mint, fontSize = 11.sp)
+                Text("${ResearchTree.all.count(game::owns)}/192 • $${game.format(game.cash)} • drag to explore", color = Mint, fontSize = 11.sp)
             }
             TextButton(onClick = { pan = Offset.Zero; zoom = .78f }) { Text("CENTER") }
+        }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            val glyphs = listOf("↗", "☁", "◆", "≈", "ϟ", "✈", "◉", "★")
+            Tech.entries.forEach { branch ->
+                TextButton(onClick = {
+                    val point = nodePosition(ResearchTree.nodes(branch)[12]); zoom = .78f; pan = Offset(-point.x * zoom, -point.y * zoom)
+                }) { Text("${glyphs[branch.ordinal]} ${branch.title}", fontSize = 11.sp) }
+            }
         }
         Box(Modifier.fillMaxSize()) {
             Canvas(Modifier.fillMaxSize()
                 .pointerInput(Unit) { detectTransformGestures { _, change, scale, _ ->
-                    pan += change; zoom = (zoom * scale).coerceIn(.42f, 2.0f)
+                    pan += change; zoom = (zoom * scale).coerceIn(.28f, 2.2f)
                 } }
                 .pointerInput(zoom, pan) { detectTapGestures { point ->
                     val center = Offset(size.width / 2f, size.height / 2f) + pan
@@ -354,11 +435,11 @@ private fun nodePosition(node: ResearchNode): Offset {
             ) {
                 val center = Offset(size.width / 2, size.height / 2) + pan
                 drawRect(Brush.radialGradient(listOf(Color(0xff183051), Night), center = center, radius = size.maxDimension))
-                for (ring in 0..7) drawCircle(Color.White.copy(alpha = .07f), (100 + ring * 75) * zoom, center, style = Stroke(width = 1f))
+                for (ring in 0..23) drawCircle(Color.White.copy(alpha = .045f), (100 + ring * 65) * zoom, center, style = Stroke(width = 1f))
                 ResearchTree.all.forEach { node ->
                     val end = center + nodePosition(node) * zoom
                     node.requires.forEach { id ->
-                        ResearchTree.all.find { it.id == id }?.let { parent ->
+                        ResearchTree.byId[id]?.let { parent ->
                             val start = center + nodePosition(parent) * zoom
                             drawLine(if (game.owns(node)) colors[node.branch.ordinal].copy(alpha = .85f) else Color.White.copy(alpha = .22f), start, end, strokeWidth = if (game.owns(node)) 4f else 2f)
                         }
@@ -372,11 +453,12 @@ private fun nodePosition(node: ResearchNode): Offset {
                     val owned = game.owns(node); val available = game.unlocked(node)
                     val color = colors[node.branch.ordinal]
                     if (!owned && available && game.cash >= node.cost) {
-                        drawCircle(color.copy(alpha = pulse * .35f), 32f * zoom, pos)
-                        drawCircle(color.copy(alpha = pulse), 25f * zoom, pos, style = Stroke(width = 2f))
+                        drawCircle(color.copy(alpha = pulse * .35f), (if (node.tier in listOf(7, 15, 23)) 32f else 23f) * zoom, pos)
+                        drawCircle(color.copy(alpha = pulse), (if (node.tier in listOf(7, 15, 23)) 26f else 19f) * zoom, pos, style = Stroke(width = 2f))
                     }
-                    drawCircle(if (owned) color else Color(0xff172238), if (node == selected) 23f * zoom else 18f * zoom, pos)
-                    drawCircle(if (owned || available) color else Color.White.copy(alpha = .25f), 18f * zoom, pos, style = Stroke(width = 2.5f))
+                    val r = if (node.tier in listOf(7, 15, 23)) 23f else 14f
+                    drawCircle(if (owned) color else Color(0xff172238), (r + if (node == selected) 5f else 0f) * zoom, pos)
+                    drawCircle(if (owned || available) color else Color.White.copy(alpha = .25f), r * zoom, pos, style = Stroke(width = if (node.tier in listOf(7, 15, 23)) 4f else 2f))
                 }
                 drawIntoCanvas { canvas ->
                     val paint = Paint().apply { isAntiAlias = true; textAlign = Paint.Align.CENTER; typeface = android.graphics.Typeface.DEFAULT_BOLD }
@@ -386,8 +468,8 @@ private fun nodePosition(node: ResearchNode): Offset {
                     ResearchTree.all.forEach { node ->
                         val pos = center + nodePosition(node) * zoom
                         paint.color = if (game.owns(node)) android.graphics.Color.rgb(9, 16, 34) else android.graphics.Color.WHITE
-                        paint.textSize = 19f * zoom
-                        canvas.nativeCanvas.drawText(glyphs[node.branch.ordinal], pos.x, pos.y + 6f * zoom, paint)
+                        paint.textSize = (if (node.tier in listOf(7, 15, 23)) 20f else 14f) * zoom
+                        canvas.nativeCanvas.drawText(if (node.tier in listOf(7, 15, 23)) "✦" else glyphs[node.branch.ordinal], pos.x, pos.y + 6f * zoom, paint)
                         if (zoom >= .72f && node.tier == 0) {
                             paint.color = android.graphics.Color.WHITE; paint.textSize = 12f * zoom
                             canvas.nativeCanvas.drawText(node.branch.title, pos.x, pos.y - 28f * zoom, paint)
@@ -400,16 +482,16 @@ private fun nodePosition(node: ResearchNode): Offset {
                 Text("TAP A NODE", color = Muted, fontSize = 10.sp)
             }
             Row(Modifier.align(Alignment.TopEnd).padding(8.dp)) {
-                TextButton(onClick = { zoom = (zoom / 1.3f).coerceAtLeast(.42f) }) { Text("−") }
-                TextButton(onClick = { zoom = (zoom * 1.3f).coerceAtMost(2f) }) { Text("+") }
+                TextButton(onClick = { zoom = (zoom / 1.3f).coerceAtLeast(.28f) }) { Text("−") }
+                TextButton(onClick = { zoom = (zoom * 1.3f).coerceAtMost(2.2f) }) { Text("+") }
             }
             selected?.let { node ->
                 Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp).background(Card, RoundedCornerShape(17.dp)).padding(14.dp)) {
                     Row { Text(listOf("↗", "☁", "◆", "≈", "ϟ", "✈", "◉", "★")[node.branch.ordinal], color = colors[node.branch.ordinal], fontSize = 22.sp)
-                        Spacer(Modifier.width(10.dp)); Column { Text(node.name, color = Color.White, fontWeight = FontWeight.Black)
+                        Spacer(Modifier.width(10.dp)); Column { Text((if (node.tier in listOf(7, 15, 23)) "KEYSTONE • " else "") + node.name, color = Color.White, fontWeight = FontWeight.Black)
                             Text("${node.branch.title} • ${node.effect}", color = Mint, fontSize = 12.sp) } }
                     if (node.requires.isNotEmpty()) {
-                        val parents = node.requires.mapNotNull { id -> ResearchTree.all.find { it.id == id }?.name }
+                        val parents = node.requires.mapNotNull { id -> ResearchTree.byId[id]?.name }
                         Text("Requires ${parents.joinToString(" + ")}", color = Muted, fontSize = 11.sp)
                     }
                     if (game.owns(node)) Text("DISCOVERED", color = Mint, fontWeight = FontWeight.Bold)

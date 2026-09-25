@@ -31,3 +31,7 @@ This preview uses `com.orbitdrive.game.preview` and a repository-held **test-onl
 ## Version 0.4
 
 Affordable research nodes pulse gently. Ball relics are permanent sequential unlocks bought with unspent relics; each has a different appearance and launch multiplier. Cappy Gilmore joins the golfer roster as a mid-tier capybara. Vector golfer portraits and tee sprites show the selected golfer, with distinct capybara features. Scenery and meter flags move faster to make ball travel visible.
+
+## Version 0.5
+
+The research constellation contains 192 unique purchasable nodes, with added split-and-merge routes and three large keystones per branch. The Stormglass Core keystone electrifies the ball when lightning is tapped, dramatically reducing drag and breaking struck obstacles instead of slowing. Aircraft, lightning and planet impact now have animated vector effects; a shattered planet cracks, bursts into fragments and sends out a shock ring.

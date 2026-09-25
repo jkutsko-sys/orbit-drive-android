@@ -17,54 +17,65 @@ internal data class BallRelic(val name: String, val relicCost: Int, val power: D
 internal data class Obstacle(val name: String, val at: Double, val height: Double, val speedLoss: Double)
 internal data class Planet(val name: String, val distance: Double, val hp: Double, val color: Color)
 internal enum class Tech(val title: String, val description: String, val baseCost: Double, val max: Int) {
-    POWER("Swingcraft", "Speed and impact", 20.0, 8),
-    GRAVITY("Atmosphere", "Flight and gravity", 90.0, 8),
-    BOUNCE("Rebound", "Ground strikes", 60.0, 8),
-    FRICTION("Surface", "Roll and terrain", 45.0, 8),
-    LIGHTNING("Stormcalling", "Active lightning", 180.0, 8),
-    PLANES("Flightpath", "Aircraft carries", 260.0, 8),
-    ORBIT("Orbital Science", "Planet encounters", 900.0, 8),
-    ASTRAL("Astral Forge", "Deep space rewards", 2000.0, 8)
+    POWER("Swingcraft", "Speed and impact", 20.0, 24),
+    GRAVITY("Atmosphere", "Flight and gravity", 90.0, 24),
+    BOUNCE("Rebound", "Ground strikes", 60.0, 24),
+    FRICTION("Surface", "Roll and terrain", 45.0, 24),
+    LIGHTNING("Stormcalling", "Active lightning", 180.0, 24),
+    PLANES("Flightpath", "Aircraft carries", 260.0, 24),
+    ORBIT("Orbital Science", "Planet encounters", 900.0, 24),
+    ASTRAL("Astral Forge", "Deep space rewards", 2000.0, 24)
 }
 internal data class ResearchNode(val id: String, val branch: Tech, val tier: Int, val name: String,
     val effect: String, val cost: Double, val requires: List<String>)
 internal object ResearchTree {
     private val names = listOf(
-        listOf("Grip Tape", "Tempo Drill", "Weighted Shaft", "Hip Rotation", "Explosive Release", "Champion's Rhythm", "Railgun Swing", "Singularity Strike"),
-        listOf("High Arc", "Thin Air", "Wind Tunnel", "Thermal Lift", "Moon Draft", "Float Field", "Zero G Pocket", "Event Horizon"),
-        listOf("Spring Core", "Rubber Shell", "Kinetic Return", "Skip Shot", "Trampoline Turf", "Meteor Rebound", "Infinite Hop", "Comet Ricochet"),
-        listOf("Polished Dimples", "Waxed Fairway", "Low Drag Coat", "Ice Slick", "Downhill Run", "Magnetic Glide", "Vacuum Roll", "Frictionless Wake"),
-        listOf("Static Charge", "Storm Cell", "Double Tap", "Arc Conductor", "Thunderhead", "Chain Lightning", "Ion Lance", "Tempest Engine"),
-        listOf("Paper Glider", "Tailwind Taxi", "Cargo Sling", "Jetstream", "Biplane Boost", "Rocket Tow", "Sky Convoy", "Orbital Carrier"),
-        listOf("Lunar Survey", "Impact Scanner", "Crater Bonus", "Gravity Slingshot", "Armor Piercer", "Planetbreaker", "Core Detonation", "Star Chart"),
-        listOf("Stardust Purse", "Relic Lens", "Nebula Vault", "Cosmic Dividend", "Nova Furnace", "Celestial Bank", "Galaxy Mint", "Infinity Engine")
+        listOf("Grip Tape", "Tempo Drill", "Weighted Shaft", "Hip Rotation", "Explosive Release", "Champion's Rhythm", "Railgun Swing", "Singularity Strike", "Sweet Spot Map", "Quick Hands", "Long Lever", "Power Coil", "Whip Crack", "Heavy Finish", "Launch Window", "Second Swing", "Deep Flex", "Arc Timing", "Torque Chamber", "Hammer Drop", "Slingshot Stance", "Skyline Release", "Titan Grip", "Overdrive Form"),
+        listOf("High Arc", "Thin Air", "Wind Tunnel", "Thermal Lift", "Moon Draft", "Float Field", "Zero G Pocket", "Event Horizon", "Rising Column", "Cloud Ladder", "Jet Stream", "Airfoil Dimples", "Tailwind Shelf", "Vacuum Pocket", "Gravity Lens", "Inversion Pulse", "Thermal Pocket", "Sky Current", "Slipstream", "Night Air", "Orbital Draft", "Aurora Lift", "Zero Point", "Skyhook"),
+        listOf("Spring Core", "Rubber Shell", "Kinetic Return", "Skip Shot", "Trampoline Turf", "Meteor Rebound", "Infinite Hop", "Comet Ricochet", "Double Skip", "Elastic Skin", "Impact Spring", "Stone Hopper", "Rebound Bank", "Rolling Kick", "Shockwave Landing", "Seismic Pulse", "Soft Landing", "Springboard", "Ground Loop", "Trick Bounce", "Bumper Shell", "Recoil Spin", "Moon Pogo", "Endless Rebound"),
+        listOf("Polished Dimples", "Waxed Fairway", "Low Drag Coat", "Ice Slick", "Downhill Run", "Magnetic Glide", "Vacuum Roll", "Frictionless Wake", "Slick Contact", "Grass Cutter", "Fast Turf", "Dust Skater", "Skim Surface", "Smooth Orbit", "Low Resistance", "Rolling Grace", "Silent Bearings", "Glass Fairway", "Surface Slip", "Glide Rail", "Low Spin", "Coastline", "Vacuum Lanes", "Perpetual Glide"),
+        listOf("Static Charge", "Storm Cell", "Double Tap", "Arc Conductor", "Thunderhead", "Chain Lightning", "Ion Lance", "Tempest Engine", "Charged Dimples", "Volt Reservoir", "Flash Step", "Cloud Ground", "Arc Jump", "Spark Trail", "Conductive Shell", "Stormglass Core", "Live Wire", "Ball Lightning", "Corona Field", "Electric Wake", "Thunder Rail", "Static Shield", "Sky Circuit", "Supercell"),
+        listOf("Paper Glider", "Tailwind Taxi", "Cargo Sling", "Jetstream", "Biplane Boost", "Rocket Tow", "Sky Convoy", "Orbital Carrier", "Propeller Assist", "Pilot Signal", "Long Tow", "Wing Lift", "Air Relay", "Flight Crew", "Second Approach", "Twin Escort", "High Altitude", "Turbine Pass", "Cloud Runway", "Afterburner", "Sky Caravan", "Launch Ramp", "Star Pilot", "Orbital Armada"),
+        listOf("Lunar Survey", "Impact Scanner", "Crater Bonus", "Gravity Slingshot", "Armor Piercer", "Planetbreaker", "Core Detonation", "Star Chart", "Crust Reading", "Fault Finder", "Dense Core", "Moon Quarry", "Impact Angle", "Crater Field", "Core Breach", "Shield Piercer", "Gravity Harvest", "Ring Run", "Planet Echo", "Orbital Strike", "Core Fragment", "Red Planet Route", "Starfall", "Cosmic Slingshot"),
+        listOf("Stardust Purse", "Relic Lens", "Nebula Vault", "Cosmic Dividend", "Nova Furnace", "Celestial Bank", "Galaxy Mint", "Infinity Engine", "Star Ledger", "Meteor Market", "Nebula Interest", "Orbit Trade", "Planet Jackpot", "Relic Collector", "Astral Dividend", "Relic Alchemy", "Supernova Bank", "Cosmic Vault", "Golden Trail", "Starlight Fund", "Galaxy Ledger", "Treasure Comet", "Infinite Yield", "Astral Crown")
     )
     private val effects = listOf(
-        listOf("+swing speed", "+perfect timing window", "+launch speed", "+planet damage", "+launch speed", "+cash per meter", "+launch speed", "+impact burst"),
-        listOf("+loft", "reduced gravity", "reduced drag", "+midflight lift", "reduced gravity", "+flight time", "reduced gravity", "+deep space range"),
-        listOf("+bounce height", "+rebound speed", "+bounce height", "+ground skip", "+bounce height", "+impact speed", "+bounce height", "+comet ricochet"),
-        listOf("reduced drag", "+rolling distance", "reduced drag", "+ground speed", "+rolling distance", "+speed retention", "reduced drag", "+wake speed"),
-        listOf("unlock lightning tap", "+lightning impulse", "+one lightning charge", "+lightning impulse", "+lightning lift", "+one lightning charge", "+lightning impulse", "+storm power"),
-        listOf("unlock aircraft", "+carry speed", "+carry altitude", "+carry speed", "+carry altitude", "+carry speed", "+carry speed", "+orbital carry"),
-        listOf("reveal planetary HP", "+impact damage", "+planet bounty", "+impact speed", "+impact damage", "+planet bounty", "+impact damage", "+slingshot speed"),
-        listOf("+distance cash", "+relic power", "+planet bounty", "+distance cash", "+relic power", "+planet bounty", "+distance cash", "+late game speed")
+        listOf("+swing speed", "+perfect timing window", "+launch speed", "+planet damage", "+launch speed", "+cash per meter", "+launch speed", "KEYSTONE: perfect strike adds a burst", "+10% perfect shot payout", "+swing power", "+smash efficiency", "+launch power", "+impact force", "+swing power", "+perfect timing", "KEYSTONE: second push when rolling ends", "+club flexibility", "+smash efficiency", "+impact force", "+launch power", "+swing power", "+smash efficiency", "+impact force", "KEYSTONE: perfect timing overdrive"),
+        listOf("+loft", "reduced gravity", "reduced drag", "+midflight lift", "reduced gravity", "+flight time", "reduced gravity", "KEYSTONE: deep-space lift", "thermal lift on descent", "reduced gravity", "reduced air drag", "+glide lift", "longer hang time", "reduced gravity", "+midflight lift", "KEYSTONE: lightning reverses fall briefly", "+glide lift", "reduced gravity", "reduced air drag", "longer hang time", "+glide lift", "reduced gravity", "reduced air drag", "KEYSTONE: skyhook lift at apex"),
+        listOf("+bounce height", "+rebound speed", "+bounce height", "+ground skip", "+bounce height", "+impact speed", "+bounce height", "KEYSTONE: comet ricochet", "first landing gets an extra skip", "+bounce height", "+rebound speed", "+bounce height", "+rebound speed", "+bounce height", "+impact speed", "KEYSTONE: landing shockwave adds cash", "+bounce height", "+rebound speed", "+bounce height", "+rebound speed", "+bounce height", "+rebound speed", "+bounce height", "KEYSTONE: pogo rebounds last longer"),
+        listOf("reduced drag", "+rolling distance", "reduced drag", "+ground speed", "+rolling distance", "+speed retention", "reduced drag", "KEYSTONE: glide wake", "+roll speed on first contact", "reduced drag", "+roll speed", "reduced drag", "+rolling distance", "reduced drag", "+roll speed", "KEYSTONE: roll coasts farther", "reduced drag", "+roll speed", "reduced drag", "+rolling distance", "reduced drag", "+roll speed", "reduced drag", "KEYSTONE: near-frictionless final roll"),
+        listOf("unlock lightning tap", "+lightning impulse", "+one lightning charge", "+lightning impulse", "+lightning lift", "+one lightning charge", "+lightning impulse", "KEYSTONE: lightning arcs again", "+charged ball duration", "+lightning impulse", "+charged ball duration", "+lightning lift", "+lightning impulse", "+charged ball duration", "+lightning impulse", "KEYSTONE: electrify ball, melt friction and shatter obstacles", "+charged ball duration", "+lightning impulse", "+charged ball duration", "+lightning lift", "+charged ball duration", "+lightning impulse", "+charged ball duration", "KEYSTONE: supercell chain burst"),
+        listOf("unlock aircraft", "+carry speed", "+carry altitude", "+carry speed", "+carry altitude", "+carry speed", "+carry speed", "KEYSTONE: orbital carrier", "+first plane tow duration", "+carry speed", "+carry altitude", "+carry speed", "+carry altitude", "+carry speed", "+aircraft signal", "KEYSTONE: second plane carry", "+carry speed", "+carry altitude", "+carry speed", "+carry speed", "+carry altitude", "+carry speed", "+carry altitude", "KEYSTONE: third escort carry"),
+        listOf("reveal planetary HP", "+impact damage", "+planet bounty", "+impact speed", "+impact damage", "+planet bounty", "+impact damage", "KEYSTONE: star chart burst", "+planet damage", "+planet bounty", "+impact damage", "+planet bounty", "+impact damage", "+planet bounty", "+impact damage", "KEYSTONE: pierce planetary armor", "+planet bounty", "+impact damage", "+planet bounty", "+impact damage", "+planet bounty", "+impact damage", "+planet bounty", "KEYSTONE: shattered planet slingshot"),
+        listOf("+distance cash", "+relic power", "+planet bounty", "+distance cash", "+relic power", "+planet bounty", "+distance cash", "KEYSTONE: infinite yield", "+distance cash", "+planet bounty", "+distance cash", "+planet bounty", "+distance cash", "+planet bounty", "+distance cash", "KEYSTONE: extra ascension relic", "+distance cash", "+planet bounty", "+distance cash", "+planet bounty", "+distance cash", "+planet bounty", "+distance cash", "KEYSTONE: combo cash crescendo")
     )
     val all: List<ResearchNode> = Tech.entries.flatMap { branch ->
-        (0..7).map { tier ->
-            val index = branch.ordinal
+        (0..23).map { tier ->
             val requires = when (tier) {
                 0 -> emptyList()
                 1, 2 -> listOf("${branch.name}-0")
                 3 -> listOf("${branch.name}-1")
                 4 -> listOf("${branch.name}-2")
                 5 -> listOf("${branch.name}-3", "${branch.name}-4")
-                6 -> listOf("${branch.name}-5")
-                else -> listOf("${branch.name}-6")
+                6, 7 -> listOf("${branch.name}-${tier - 1}")
+                8, 9 -> listOf("${branch.name}-7")
+                10 -> listOf("${branch.name}-8")
+                11 -> listOf("${branch.name}-9")
+                12 -> listOf("${branch.name}-10", "${branch.name}-11")
+                13, 14 -> listOf("${branch.name}-12")
+                15 -> listOf("${branch.name}-13", "${branch.name}-14")
+                16, 17 -> listOf("${branch.name}-15")
+                18 -> listOf("${branch.name}-16")
+                19 -> listOf("${branch.name}-17")
+                20 -> listOf("${branch.name}-18", "${branch.name}-19")
+                21, 22 -> listOf("${branch.name}-20")
+                else -> listOf("${branch.name}-21", "${branch.name}-22")
             }
-            ResearchNode("${branch.name}-$tier", branch, tier, names[index][tier], effects[index][tier],
+            ResearchNode("${branch.name}-$tier", branch, tier, names[branch.ordinal][tier], effects[branch.ordinal][tier],
                 branch.baseCost * 2.15.pow(tier), requires)
         }
     }
+    val byId = all.associateBy { it.id }
     fun nodes(branch: Tech) = all.filter { it.branch == branch }
 }
 internal enum class Phase { READY, CHARGING, FLYING, LANDED }
@@ -154,8 +165,17 @@ internal class GameEngine(context: Context) {
     var planetHP by mutableStateOf(0.0); private set
     var earned by mutableStateOf(0.0); private set
     var combo by mutableStateOf(0); private set
+    var electrifiedFor by mutableStateOf(0.0); private set
+    var lightningFlashFor by mutableStateOf(0.0); private set
+    var planeSpriteFor by mutableStateOf(0.0); private set
+    var planetEffectFor by mutableStateOf(0.0); private set
+    var planetImpactID by mutableStateOf<Int?>(null); private set
+    var planetShattered by mutableStateOf(false); private set
+    private val brokenObstacles = mutableSetOf<Int>()
+    fun obstacleBroken(index: Int) = index in brokenObstacles
     private var vx = 0.0; private var vy = 0.0; private var flightTime = 0.0
-    private var bounceCount = 0; private var chargeDirection = 1.0; private var planeUsed = false
+    private var bounceCount = 0; private var chargeDirection = 1.0; private var planeCarries = 0
+    private var secondSwingUsed = false; private var skyhookUsed = false
     private var previousDistance = 0.0
 
     init { restore() }
@@ -194,10 +214,13 @@ internal class GameEngine(context: Context) {
     fun release() {
         if (phase != Phase.CHARGING) return
         phase = Phase.FLYING; distance = 0.0; previousDistance = 0.0; altitude = 1.0; flightTime = 0.0
-        bounceCount = 0; combo = 0; earned = 0.0; planeUsed = false
+        bounceCount = 0; combo = 0; earned = 0.0; planeCarries = 0; secondSwingUsed = false; skyhookUsed = false
+        brokenObstacles.clear(); electrifiedFor = 0.0; lightningFlashFor = 0.0; planeSpriteFor = 0.0; planetEffectFor = 0.0; planetImpactID = null
         lightningCharges = if (level(Tech.LIGHTNING) > 0) 1 + (if (nodeEffect(Tech.LIGHTNING, 2)) 1 else 0) + (if (nodeEffect(Tech.LIGHTNING, 5)) 1 else 0) else 0
         planetHP = nextPlanetIndex?.let { (planets[it].hp - damage[it]).coerceAtLeast(0.0) } ?: 0.0
-        val launchSpeed = (club.swing * 1.15.pow(clubLevels[ownedClub]) + level(Tech.POWER) * 11) * club.smash * (0.28 + 0.72 * (if (nodeEffect(Tech.POWER, 1)) max(charge, 0.55) else charge)) * multiplier * golfer.power * apparelPower * ball.power
+        val perfect = charge > 0.85
+        val strikeBonus = if (perfect && nodeEffect(Tech.POWER, 23)) 1.50 else if (perfect && nodeEffect(Tech.POWER, 7)) 1.12 else 1.0
+        val launchSpeed = (club.swing * 1.15.pow(clubLevels[ownedClub]) + level(Tech.POWER) * 11) * club.smash * (0.28 + 0.72 * (if (nodeEffect(Tech.POWER, 1)) max(charge, 0.55) else charge)) * multiplier * golfer.power * apparelPower * ball.power * strikeBonus
         val angle = Math.toRadians(club.loft + level(Tech.GRAVITY) * 0.4)
         vx = launchSpeed * cos(angle); vy = launchSpeed * sin(angle); speed = launchSpeed
         launches++; save(); message = if (charge > 0.85) "PERFECT STRIKE!" else "Ball away!"
@@ -206,11 +229,20 @@ internal class GameEngine(context: Context) {
         if (phase != Phase.FLYING || lightningCharges <= 0) return
         lightningCharges--
         val impulse = 35 + level(Tech.LIGHTNING) * 18
-        vx += impulse * multiplier * (if (nodeEffect(Tech.LIGHTNING, 7)) 1.4 else 1.0); vy += impulse * (if (nodeEffect(Tech.LIGHTNING, 4)) 0.8 else 0.4)
-        message = "⚡ LIGHTNING BOOST +$impulse"
+        vx += impulse * multiplier * (if (nodeEffect(Tech.LIGHTNING, 23)) 2.0 else if (nodeEffect(Tech.LIGHTNING, 7)) 1.4 else 1.0)
+        vy += impulse * (if (nodeEffect(Tech.LIGHTNING, 4)) 0.8 else 0.4)
+        if (nodeEffect(Tech.GRAVITY, 15)) vy = max(vy, 65.0)
+        lightningFlashFor = .38
+        if (nodeEffect(Tech.LIGHTNING, 15)) {
+            electrifiedFor = 6.0 + (8..14).count { nodeEffect(Tech.LIGHTNING, it) } * .6 + (if (nodeEffect(Tech.LIGHTNING, 23)) 5.0 else 0.0)
+        }
+        message = if (electrifiedFor > 0) "⚡ ELECTRIFIED BALL • obstacles shatter" else "⚡ LIGHTNING BOOST +$impulse"
     }
     fun tick(step: Double) {
         val dt = step.coerceIn(0.0, 0.05)
+        lightningFlashFor = (lightningFlashFor - dt).coerceAtLeast(0.0)
+        planeSpriteFor = (planeSpriteFor - dt).coerceAtLeast(0.0)
+        planetEffectFor = (planetEffectFor - dt).coerceAtLeast(0.0)
         if (phase == Phase.CHARGING) {
             charge += chargeDirection * dt * 0.78
             if (charge >= 1) { charge = 1.0; chargeDirection = -1.0 }
@@ -222,25 +254,39 @@ internal class GameEngine(context: Context) {
             if (phase != Phase.FLYING) return@repeat
             val h = dt / 4
             flightTime += h; previousDistance = distance
+            electrifiedFor = (electrifiedFor - h).coerceAtLeast(0.0)
             vy -= 45 / (1 + level(Tech.GRAVITY) * 0.24) * h
             if (nodeEffect(Tech.GRAVITY, 3) && flightTime in 1.0..2.0) vy += 3.0 * h
-            vx *= (1 - max(0.00005, 0.0016 - level(Tech.FRICTION) * 0.000075) * h).coerceAtLeast(0.0)
+            if (nodeEffect(Tech.GRAVITY, 8) && vy < 0 && altitude > 0) vy += 4.0 * h
+            if (!skyhookUsed && nodeEffect(Tech.GRAVITY, 23) && vy < 0 && altitude > 30) {
+                vy = 90.0; skyhookUsed = true; message = "☁ Skyhook lifts the ball!"
+            }
+            val airDrag = max(0.00005, 0.0016 - level(Tech.FRICTION) * 0.000075)
+            vx *= (1 - airDrag * h * (if (electrifiedFor > 0) .08 else 1.0)).coerceAtLeast(0.0)
             distance += vx * h; altitude += vy * h
-            obstacles.forEach { obstacle ->
+            obstacles.forEachIndexed { obstacleIndex, obstacle ->
                 if (previousDistance < obstacle.at && distance >= obstacle.at && altitude < obstacle.height) {
-                    vx *= 1 - obstacle.speedLoss
-                    vy = max(vy, 8.0)
-                    message = "Hit ${obstacle.name}! Speed -${(obstacle.speedLoss * 100).toInt()}%"
+                    if (electrifiedFor > 0) {
+                        brokenObstacles.add(obstacleIndex)
+                        vx *= 1.04
+                        message = "⚡ ${obstacle.name} shattered!"
+                    } else {
+                        vx *= 1 - obstacle.speedLoss
+                        vy = max(vy, 8.0)
+                        message = "Hit ${obstacle.name}! Speed -${(obstacle.speedLoss * 100).toInt()}%"
+                    }
                 }
             }
             val index = nextPlanetIndex
             if (index != null && previousDistance < planets[index].distance && distance >= planets[index].distance) {
                 val planet = planets[index]
-                val hit = max(1.0, speed * (1 + level(Tech.POWER) * 0.18 + level(Tech.ORBIT) * 0.24) * multiplier)
+                planetImpactID = index; planetEffectFor = 1.8; planetShattered = false
+                val hit = max(1.0, speed * (1 + level(Tech.POWER) * 0.18 + level(Tech.ORBIT) * 0.24) * multiplier * (if (nodeEffect(Tech.ORBIT, 15)) 1.5 else 1.0))
                 damage[index] = (damage[index] + hit).coerceAtMost(planet.hp)
                 planetHP = planet.hp - damage[index]
                 if (planetHP <= 0) {
-                    destroyed[index] = true; combo++
+                    destroyed[index] = true; combo++; planetShattered = true
+                    if (nodeEffect(Tech.ORBIT, 23)) { vx *= 1.4; vy = max(vy, 55.0) }
                     val bounty = planet.hp * 3 * (1 + level(Tech.ORBIT) * 0.18 + level(Tech.ASTRAL) * 0.14) * multiplier
                     earned += bounty; cash += bounty
                     message = "${planet.name} shattered! +$${format(bounty)}"
@@ -248,19 +294,32 @@ internal class GameEngine(context: Context) {
                 } else { message = "${planet.name} impact! ${format(planetHP)} HP left"; vx *= 0.83 }
                 save()
             }
-            if (!planeUsed && level(Tech.PLANES) > 0 && flightTime > 2.5 && altitude > 5) {
-                planeUsed = true; vx += (70 + level(Tech.PLANES) * 30) * multiplier
-                vy = max(vy, 35.0 + level(Tech.PLANES) * 8); message = "✈ Aircraft carry!"
+            val maxCarries = 1 + (if (nodeEffect(Tech.PLANES, 15)) 1 else 0) + (if (nodeEffect(Tech.PLANES, 23)) 1 else 0)
+            if (level(Tech.PLANES) > 0 && planeCarries < maxCarries && flightTime > 2.5 + planeCarries * 5.0 && altitude > 5) {
+                planeCarries++; planeSpriteFor = 1.8
+                vx += (70 + level(Tech.PLANES) * 30) * multiplier * (if (nodeEffect(Tech.PLANES, 8)) 1.15 else 1.0)
+                vy = max(vy, 35.0 + level(Tech.PLANES) * 8); message = "✈ Aircraft carry #$planeCarries!"
             }
             if (altitude <= 0) {
-                altitude = 0.0; bounceCount++
+                altitude = 0.0
+                val landedImpact = vy < -1.0
+                if (landedImpact) bounceCount++
                 val restitution = min(0.9, 0.34 + level(Tech.BOUNCE) * 0.035 + (if (nodeEffect(Tech.BOUNCE, 7)) 0.06 else 0.0))
-                if (abs(vy) > 11 && bounceCount < 28) {
+                if (landedImpact && nodeEffect(Tech.BOUNCE, 15)) { val shock = min(10000.0, abs(vy) * 2); earned += shock; cash += shock }
+                if (landedImpact && nodeEffect(Tech.BOUNCE, 8) && bounceCount == 1) vy *= 1.28
+                if (landedImpact && nodeEffect(Tech.FRICTION, 8) && bounceCount == 1) vx *= 1.08
+                if (abs(vy) > 11 && bounceCount < (if (nodeEffect(Tech.BOUNCE, 23)) 60 else 28)) {
                     vy = abs(vy) * restitution
                     vx *= max(0.6, 0.82 + level(Tech.FRICTION) * 0.012 + (if (nodeEffect(Tech.BOUNCE, 3)) 0.03 else 0.0))
                 } else {
-                    vy = 0.0; vx *= (1 - (0.7 / (1 + level(Tech.FRICTION) * 0.35)) * h).coerceAtLeast(0.0)
-                    if (vx < 2 || flightTime > 240) finish()
+                    vy = 0.0
+                    val groundDrag = (0.7 / (1 + level(Tech.FRICTION) * 0.35)) *
+                        (if (nodeEffect(Tech.FRICTION, 23)) .25 else if (nodeEffect(Tech.FRICTION, 15)) .55 else 1.0) *
+                        (if (electrifiedFor > 0) .08 else 1.0)
+                    vx *= (1 - groundDrag * h).coerceAtLeast(0.0)
+                    if (vx < 2 && nodeEffect(Tech.POWER, 15) && !secondSwingUsed) {
+                        secondSwingUsed = true; vx = max(30.0, club.swing * .5); vy = 15.0; message = "↗ Second Swing!"
+                    } else if (vx < 2 || flightTime > 240) finish()
                 }
             }
             speed = hypot(vx, vy)
@@ -270,7 +329,7 @@ internal class GameEngine(context: Context) {
     private fun finish() {
         if (phase != Phase.FLYING) return
         phase = Phase.LANDED; speed = 0.0; altitude = 0.0
-        val payout = max(1.0, distance * (0.13 + combo * 0.03) * golfer.cashBonus * (1 + level(Tech.ASTRAL) * 0.18 + (if (nodeEffect(Tech.POWER, 5)) 0.15 else 0.0)) * multiplier)
+        val payout = max(1.0, distance * (0.13 + combo * 0.03) * golfer.cashBonus * (1 + level(Tech.ASTRAL) * 0.18 + (if (nodeEffect(Tech.POWER, 5)) 0.15 else 0.0) + (if (nodeEffect(Tech.POWER, 8) && charge > .85) .10 else 0.0) + (if (nodeEffect(Tech.ASTRAL, 23)) combo * .12 else 0.0)) * multiplier)
         earned += payout; cash += payout; lifetimeDistance += distance; bestDistance = max(bestDistance, distance)
         message = "${format(distance)} m • +$${format(earned)}"; save()
     }
@@ -310,7 +369,8 @@ internal class GameEngine(context: Context) {
     }
     fun ascend() {
         if (!ascendAvailable) return
-        val gained = potentialRelics; relics += gained; relicBank += gained; ascensions++
+        val gained = potentialRelics + if (nodeEffect(Tech.ASTRAL, 15)) 1 else 0
+        relics += gained; relicBank += gained; ascensions++
         cash = 0.0; lifetimeDistance = 0.0; bestDistance = 0.0; launches = 0; ownedClub = 0
         clubLevels.indices.forEach { clubLevels[it] = 0 }; purchased.clear()
         damage.indices.forEach { damage[it] = 0.0; destroyed[it] = false }
