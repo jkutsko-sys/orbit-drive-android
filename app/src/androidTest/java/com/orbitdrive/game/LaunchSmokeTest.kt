@@ -34,6 +34,23 @@ class LaunchSmokeTest {
         rule.onNodeWithText("Ascend").performClick()
         rule.onNodeWithText("GOLF BALLS").assertExists()
     }
+    @Test fun settingsVoucherIsOneTime() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val prefs = context.getSharedPreferences("orbit_drive_v1", android.content.Context.MODE_PRIVATE)
+        val prior = prefs.getString("save", null)
+        try {
+            prefs.edit().remove("save").commit()
+            val engine = GameEngine(context)
+            assertEquals("Invalid voucher code", engine.redeemVoucher("wrong"))
+            assertEquals("$10,000 added for testing", engine.redeemVoucher("admin"))
+            assertEquals(10_000.0, engine.cash, 0.01)
+            assertEquals("ADMIN voucher already redeemed", GameEngine(context).redeemVoucher("ADMIN"))
+        } finally {
+            if (prior == null) prefs.edit().remove("save").commit()
+            else prefs.edit().putString("save", prior).commit()
+        }
+    }
+
     @Test fun expandedTreeAndElectricKeystone() {
         assertEquals(192, ResearchTree.all.size)
         assertEquals(192, ResearchTree.all.map { it.id }.toSet().size)

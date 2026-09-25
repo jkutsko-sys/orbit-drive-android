@@ -53,6 +53,8 @@ private val Mint = Color(0xff80ffbf)
 private val Muted = Color(0xffa6afc3)
 
 class MainActivity : ComponentActivity() {
+    private lateinit var audio: AudioDirector
+    override fun onDestroy() { audio.release(); super.onDestroy() }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val crashPrefs = getSharedPreferences("orbit_crash_report", MODE_PRIVATE)
@@ -62,12 +64,17 @@ class MainActivity : ComponentActivity() {
             previousHandler?.uncaughtException(thread, error)
         }
         val game = GameEngine(this)
-        setContent { OrbitApp(game, crashPrefs.getString("last", null)) { crashPrefs.edit().remove("last").apply() } }
+        audio = AudioDirector(this)
+        setContent { OrbitApp(game, audio, crashPrefs.getString("last", null)) { crashPrefs.edit().remove("last").apply() } }
     }
 }
 
-@Composable private fun OrbitApp(game: GameEngine, previousCrash: String?, clearCrash: () -> Unit) {
+@Composable private fun OrbitApp(game: GameEngine, audio: AudioDirector, previousCrash: String?, clearCrash: () -> Unit) {
     var tab by remember { mutableIntStateOf(0) }
+    var settingsOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(game.soundEventId) { if (game.soundEventId > 0) audio.cue(game.soundCue) }
+    LaunchedEffect(game.distance) { audio.setArea(game.distance) }
+    if (settingsOpen) SettingsDialog(game, audio) { settingsOpen = false }
     var crash by remember { mutableStateOf(previousCrash) }
     if (crash != null) AlertDialog(onDismissRequest = { crash = null; clearCrash() },
         title = { Text("Previous launch ended unexpectedly") },
@@ -75,7 +82,11 @@ class MainActivity : ComponentActivity() {
         confirmButton = { TextButton(onClick = { crash = null; clearCrash() }) { Text("Close") } })
     val pages = listOf("Range", "Research", "Clubs", "Golfer", "Ascend")
     MaterialTheme(colorScheme = darkColorScheme(primary = Mint, surface = Card, background = Night)) {
-        Scaffold(containerColor = Night, bottomBar = {
+        Scaffold(containerColor = Night, topBar = {
+            Row(Modifier.fillMaxWidth().background(Night).padding(horizontal = 12.dp), horizontalArrangement = Arrangement.End) {
+                IconButton(onClick = { settingsOpen = true }, modifier = Modifier.testTag("settings")) { Icon(Icons.Default.Settings, "Settings", tint = Mint) }
+            }
+        }, bottomBar = {
             NavigationBar(containerColor = Card) {
                 pages.forEachIndexed { index, title ->
                     NavigationBarItem(selected = tab == index, onClick = { tab = index },
@@ -267,6 +278,12 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
                 drawLine(Color(0xffd7ffff), p1, p2, strokeWidth = 2f)
             }
         }
+        if (game.twinLaunch && game.phase == Phase.FLYING) {
+            val secondY = ballY + 22f + sin(game.distance.toFloat() * .04f) * 4f
+            drawCircle(ball.tint.copy(alpha = .88f), 9f, Offset(ballX - 29f, secondY))
+            drawLine(ball.stripe, Offset(ballX - 34f, secondY - 5f), Offset(ballX - 24f, secondY + 5f), strokeWidth = 2f)
+            drawLine(Mint.copy(alpha = .4f), Offset(ballX - 85f, secondY + 7f), Offset(ballX - 39f, secondY), strokeWidth = 3f)
+        }
         drawCircle(ball.tint, radius = 11f, center = Offset(ballX, ballY))
         drawCircle(ball.stripe.copy(alpha = .8f), radius = 11f, center = Offset(ballX, ballY), style = Stroke(width = 2f))
         val spin = (game.distance * .12).toFloat()
@@ -301,10 +318,22 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
         if (game.phase == Phase.READY || game.phase == Phase.CHARGING) {
             val gx = ballX - 38f
             drawGolferSprite(gx, ground, game.selectedGolfer, game.golfer.look, 1f)
-            val clubColor = listOf(Color.Gray, Color(0xffc5a77e), Color.Cyan, Color(0xffb4d0d5), Color(0xffffc36a), Color(0xfff07d74), Color.Magenta)[game.ownedClub % 7]
+            val clubColor = if (game.equippedClub == game.clubs.lastIndex) Color(0xffe7a6ff)
+                else listOf(Color.Gray, Color(0xffc5a77e), Color.Cyan, Color(0xffb4d0d5), Color(0xffffc36a), Color(0xfff07d74), Color.Magenta)[game.equippedClub % 7]
             val sweep = if (game.phase == Phase.CHARGING) game.charge.toFloat() * 42f else 0f
-            drawLine(clubColor, Offset(gx + 14, ground - 35), Offset(ballX - 5, ground - 13 - sweep), strokeWidth = 3f + game.ownedClub * .13f)
+            drawLine(clubColor, Offset(gx + 14, ground - 35), Offset(ballX - 5, ground - 13 - sweep), strokeWidth = 3f + game.equippedClub * .13f)
             drawLine(clubColor, Offset(ballX - 13, ground - 13 - sweep), Offset(ballX - 1, ground - 13 - sweep), strokeWidth = 7f)
+            if (game.equippedClub == game.clubs.lastIndex) {
+                // Prismatic orbit and floating fragments evoke a legendary endgame club without borrowed art.
+                repeat(6) { i ->
+                    val angle = i * PI / 3 + game.charge * 1.6
+                    val px = gx + 8f + cos(angle).toFloat() * 24f
+                    val py = ground - 36f + sin(angle).toFloat() * 29f
+                    val shards = listOf(Color(0xff67e8f9), Color(0xffec93fa), Color(0xffffd17a))
+                    drawLine(shards[i % 3], Offset(px - 4, py + 4), Offset(px + 5, py - 5), strokeWidth = 4f)
+                }
+                drawCircle(Color(0xffa7e9ff).copy(alpha = .35f), 32f, Offset(gx + 8, ground - 37), style = Stroke(width = 3f))
+            }
         }
         if (game.phase == Phase.FLYING && game.speed > 20) {
             repeat(7) { i ->
@@ -507,23 +536,27 @@ private fun nodePosition(node: ResearchNode): Offset {
 @Composable private fun ClubsScreen(game: GameEngine) {
     val revision = game.revision
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item { Header("THE PRO SHOP", "15 drivers from junkyard to deep space. Upgrade each club’s swing.") }
+        item { Header("THE PRO SHOP", "Buy in order, equip any owned club, and upgrade its swing.") }
         items(game.clubs.indices.toList()) { id ->
             val club = game.clubs[id]
             CardBox {
                 Text(club.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text(if (id == game.ownedClub) "EQUIPPED • LEVEL ${game.clubLevel(id)}" else if (id < game.ownedClub) "OWNED" else "LOCKED", color = Mint, fontSize = 10.sp)
+                Text(if (id == game.equippedClub) "EQUIPPED • LEVEL ${game.clubLevel(id)}" else if (id <= game.ownedClub) "OWNED • LEVEL ${game.clubLevel(id)}" else "LOCKED", color = Mint, fontSize = 10.sp)
+                Text(game.clubPerks[id], color = Color(0xffffd787), fontSize = 11.sp)
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Pill("SWING ${game.format(club.swing * 1.15.pow(game.clubLevel(id)))}")
                     Pill("LOFT ${club.loft.toInt()}°")
                     Pill("SMASH ${"%.2f".format(club.smash)}×")
                 }
-                if (id == game.ownedClub) {
+                if (id == game.equippedClub) {
                     Spacer(Modifier.height(10.dp))
                     Button(onClick = game::upgradeClub, enabled = game.clubLevel(id) < 30 && game.cash >= game.clubUpgradeCost(), modifier = Modifier.fillMaxWidth()) {
                         Text("UPGRADE CLUB  •  $${game.format(game.clubUpgradeCost())}")
                     }
+                } else if (id <= game.ownedClub) {
+                    Spacer(Modifier.height(10.dp))
+                    Button(onClick = { game.equipClub(id) }, enabled = game.phase != Phase.FLYING, modifier = Modifier.fillMaxWidth()) { Text("EQUIP ${club.name.uppercase()}") }
                 } else if (id == game.ownedClub + 1) {
                     Spacer(Modifier.height(10.dp))
                     Button(onClick = { game.buyClub(id) }, enabled = game.cash >= club.cost, modifier = Modifier.fillMaxWidth()) {
@@ -624,4 +657,28 @@ private fun nodePosition(node: ResearchNode): Offset {
         text = { Text("Cash, clubs, research, and planet progress reset. Golfers, golf balls, apparel, and permanent relics remain.") },
         confirmButton = { TextButton(onClick = { game.ascend(); confirm = false }) { Text("Ascend") } },
         dismissButton = { TextButton(onClick = { confirm = false }) { Text("Cancel") } })
+}
+
+@Composable private fun SettingsDialog(game: GameEngine, audio: AudioDirector, close: () -> Unit) {
+    var code by remember { mutableStateOf("") }
+    var result by remember { mutableStateOf("") }
+    AlertDialog(onDismissRequest = close, title = { Text("SETTINGS") }, text = {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Music"); Switch(checked = audio.musicEnabled, onCheckedChange = audio::setMusic)
+            }
+            Text("Music volume")
+            Slider(value = audio.musicVolume, onValueChange = audio::setMusicVolume)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Sound effects"); Switch(checked = audio.effectsEnabled, onCheckedChange = audio::setEffects)
+            }
+            Text("Effects volume")
+            Slider(value = audio.effectsVolume, onValueChange = audio::setEffectsVolume)
+            HorizontalDivider()
+            Text("Preview voucher", fontWeight = FontWeight.Bold)
+            OutlinedTextField(value = code, onValueChange = { code = it }, label = { Text("Voucher code") }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("voucherCode"))
+            Button(onClick = { result = game.redeemVoucher(code); code = "" }, modifier = Modifier.testTag("redeem")) { Text("Redeem") }
+            if (result.isNotEmpty()) Text(result, color = Mint)
+        }
+    }, confirmButton = { TextButton(onClick = close) { Text("Done") } })
 }

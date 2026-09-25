@@ -35,3 +35,7 @@ Affordable research nodes pulse gently. Ball relics are permanent sequential unl
 ## Version 0.5
 
 The research constellation contains 192 unique purchasable nodes, with added split-and-merge routes and three large keystones per branch. The Stormglass Core keystone electrifies the ball when lightning is tapped, dramatically reducing drag and breaking struck obstacles instead of slowing. Aircraft, lightning and planet impact now have animated vector effects; a shattered planet cracks, bursts into fragments and sends out a shock ring.
+
+## Preview 0.6
+
+The eight research branches contain three effect keystones each. Clubs now have individual perks and previously purchased clubs can be equipped from the shop. Carbon Slice launches two visible balls, doubles shot income and reduces launch speed by 18%; the final Zenith club combines earlier club perks without that penalty. Settings include separate music and effects controls, original procedural range/orbit/deep-space arrangements, and a one-time `ADMIN` preview voucher worth $10,000. The voucher only works in a debuggable build and remains redeemed through ascension.
