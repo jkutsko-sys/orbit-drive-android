@@ -4,6 +4,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.performClick
 import org.junit.Rule
 import org.junit.Test
 
@@ -18,5 +19,12 @@ class LaunchSmokeTest {
         }
         rule.waitForIdle()
         rule.onNodeWithText("ORBIT DRIVE").assertExists()
+    }
+
+    @Test fun treeAndGolferRosterOpen() {
+        rule.onNodeWithText("Research").performClick()
+        rule.onNodeWithText("RESEARCH CONSTELLATION").assertExists()
+        rule.onNodeWithText("Golfer").performClick()
+        rule.onNodeWithText("GOLFER ROSTER").assertExists()
     }
 }

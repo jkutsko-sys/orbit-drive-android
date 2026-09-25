@@ -6,9 +6,11 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +23,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import android.graphics.Paint
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.PI
+import kotlin.math.hypot
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -62,13 +71,13 @@ class MainActivity : ComponentActivity() {
         title = { Text("Previous launch ended unexpectedly") },
         text = { Text(crash ?: "", fontSize = 10.sp) },
         confirmButton = { TextButton(onClick = { crash = null; clearCrash() }) { Text("Close") } })
-    val pages = listOf("Range", "Research", "Clubs", "Ascend")
+    val pages = listOf("Range", "Research", "Clubs", "Golfer", "Ascend")
     MaterialTheme(colorScheme = darkColorScheme(primary = Mint, surface = Card, background = Night)) {
         Scaffold(containerColor = Night, bottomBar = {
             NavigationBar(containerColor = Card) {
                 pages.forEachIndexed { index, title ->
                     NavigationBarItem(selected = tab == index, onClick = { tab = index },
-                        icon = { Icon(listOf(Icons.Default.SportsGolf, Icons.Default.Science, Icons.Default.ShoppingBag, Icons.Default.AutoAwesome)[index], null) },
+                        icon = { Icon(listOf(Icons.Default.SportsGolf, Icons.Default.Science, Icons.Default.ShoppingBag, Icons.Default.Person, Icons.Default.AutoAwesome)[index], null) },
                         label = { Text(title) })
                 }
             }
@@ -78,6 +87,7 @@ class MainActivity : ComponentActivity() {
                     0 -> RangeScreen(game, true)
                     1 -> ResearchScreen(game)
                     2 -> ClubsScreen(game)
+                    3 -> GolferScreen(game)
                     else -> AscendScreen(game)
                 }
             }
@@ -183,14 +193,63 @@ class MainActivity : ComponentActivity() {
             drawCircle(Color.White.copy(alpha = if (space) .75f else .15f), radius = if (i % 4 == 0) 2.5f else 1f, center = Offset(x, y))
         }
         val ground = size.height * .8f
+        val drift = (game.distance * .18).toFloat()
+        if (!space) {
+            repeat(5) { i ->
+                val x = ((i * size.width / 3 - drift * .35f) % (size.width + 160) + size.width + 160) % (size.width + 160) - 70
+                val y = size.height * (.19f + (i % 3) * .12f)
+                drawCircle(Color.White.copy(alpha = .45f), 22f, Offset(x, y))
+                drawCircle(Color.White.copy(alpha = .45f), 16f, Offset(x + 21, y + 3))
+                drawCircle(Color.White.copy(alpha = .45f), 15f, Offset(x - 19, y + 5))
+            }
+            repeat(4) { i ->
+                val x = ((i * size.width / 2 - drift * .12f) % (size.width + 200) + size.width + 200) % (size.width + 200)
+                drawLine(Color(0xff243b52), Offset(x, ground - 45), Offset(x, ground), strokeWidth = 22f)
+                drawRect(Color(0xff253c54), Offset(x - 21, ground - 52), Size(42f, 8f))
+            }
+            repeat(3) { i ->
+                val x = ((i * size.width / 2 - drift * .45f) % (size.width + 120) + size.width + 120) % (size.width + 120)
+                val y = size.height * (.13f + i * .055f)
+                drawLine(Color(0xff263d56), Offset(x, y), Offset(x + 8, y - 4), strokeWidth = 2f)
+                drawLine(Color(0xff263d56), Offset(x + 8, y - 4), Offset(x + 16, y), strokeWidth = 2f)
+            }
+        }
         drawRect(if (space) Color(0xff302746) else Color(0xff1e664d), topLeft = Offset(0f, ground), size = Size(size.width, size.height - ground))
         repeat(6) { i -> drawLine(Color.White.copy(alpha = .08f), Offset(0f, ground + i * 22f), Offset(size.width, ground + i * 22f)) }
+        repeat(12) { i ->
+            val x = ((i * 90f - drift * 1.2f) % (size.width + 90) + size.width + 90) % (size.width + 90)
+            drawLine(Color.White.copy(alpha = .17f), Offset(x, ground + 18), Offset(x + 25, ground + 18), strokeWidth = 2f)
+        }
         val ballX = size.width * if (game.phase == Phase.READY || game.phase == Phase.CHARGING) .18f else .36f
         val height = (ln(1 + max(0.0, game.altitude)) / ln(200.0)).toFloat() * size.height * .55f
         val ballY = max(size.height * .15f, ground - 10 - height)
         drawCircle(Color.Black.copy(alpha = .25f), radius = 12f, center = Offset(ballX, ground))
         if (game.phase == Phase.FLYING) drawLine(Mint.copy(alpha = .65f), Offset(ballX - min(130f, (game.speed * .3).toFloat()), ballY + 20), Offset(ballX - 8, ballY + 2), strokeWidth = 6f)
         drawCircle(Color.White, radius = 9f, center = Offset(ballX, ballY))
+        val spin = (game.distance * .12).toFloat()
+        drawLine(Color(0xff263c5c), Offset(ballX + cos(spin) * 7f, ballY + sin(spin) * 7f),
+            Offset(ballX - cos(spin) * 7f, ballY - sin(spin) * 7f), strokeWidth = 2f)
+        if (game.phase == Phase.READY || game.phase == Phase.CHARGING) {
+            val gx = ballX - 38f
+            drawCircle(game.golfer.look, 10f, Offset(gx, ground - 57))
+            drawLine(game.golfer.look, Offset(gx, ground - 47), Offset(gx + 4, ground - 20), strokeWidth = 10f)
+            drawLine(Color(0xffe2e9ef), Offset(gx + 4, ground - 20), Offset(gx - 8, ground), strokeWidth = 5f)
+            drawLine(Color(0xffe2e9ef), Offset(gx + 4, ground - 20), Offset(gx + 17, ground), strokeWidth = 5f)
+            val clubColor = listOf(Color.Gray, Color(0xffc5a77e), Color.Cyan, Color(0xffb4d0d5), Color(0xffffc36a), Color(0xfff07d74), Color.Magenta)[game.ownedClub % 7]
+            val sweep = if (game.phase == Phase.CHARGING) game.charge.toFloat() * 42f else 0f
+            drawLine(Color(0xfff4dfbe), Offset(gx + 4, ground - 38), Offset(gx + 19, ground - 38 - sweep * .25f), strokeWidth = 4f)
+            drawLine(clubColor, Offset(gx + 19, ground - 38 - sweep * .25f), Offset(ballX - 5, ground - 13 - sweep), strokeWidth = 3f + game.ownedClub * .13f)
+            drawLine(clubColor, Offset(ballX - 13, ground - 13 - sweep), Offset(ballX - 1, ground - 13 - sweep), strokeWidth = 7f)
+        }
+        game.obstacles.forEach { obstacle ->
+            val x = ballX + ((obstacle.at - game.distance) * .55).toFloat()
+            if (x in -30f..(size.width + 30f) && game.distance < 7000) {
+                val h = (obstacle.height * 3).toFloat()
+                if (obstacle.name.contains("rock")) drawCircle(Color(0xff727b84), 13f, Offset(x, ground - 5))
+                else { drawRect(Color(0xff40566a), Offset(x - 12, ground - h), Size(24f, h));
+                    drawRect(Color(0xff9cabc2), Offset(x - 15, ground - h), Size(30f, 5f)) }
+            }
+        }
         game.nextPlanet?.let { planet ->
             if (planet.distance - game.distance < max(2500.0, planet.distance * .15)) {
                 val progress = 1 - max(0.0, (planet.distance - game.distance) / max(2500.0, planet.distance * .15))
@@ -207,80 +266,103 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private fun nodePosition(node: ResearchNode): Offset {
+    val angle = -PI / 2 + node.branch.ordinal * PI / 4 + when (node.tier) { 1, 3 -> -.10; 2, 4 -> .10; else -> 0.0 }
+    val radius = 100f + node.tier * 75f
+    return Offset((cos(angle) * radius).toFloat(), (sin(angle) * radius).toFloat())
+}
+
 @Composable private fun ResearchScreen(game: GameEngine) {
     val revision = game.revision
-    var selected by remember { mutableStateOf(Tech.POWER) }
+    var selected by remember { mutableStateOf<ResearchNode?>(null) }
+    var zoom by remember { mutableFloatStateOf(.78f) }
+    var pan by remember { mutableStateOf(Offset.Zero) }
+    val colors = listOf(Color(0xffff9f72), Color(0xff88c7ff), Color(0xffe7b6ff), Color(0xff96f1c2),
+        Color(0xffffdf69), Color(0xffa8c5ff), Color(0xffee90a0), Color(0xffc7b2ff))
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
-            Header("RESEARCH CONSTELLATION", "64 named discoveries across eight branching paths.")
-            Text("$${game.format(game.cash)} CASH  •  ${ResearchTree.all.count(game::owns)}/64 DISCOVERED", color = Mint, fontSize = 12.sp)
+        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("RESEARCH CONSTELLATION", color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.Black)
+                Text("${ResearchTree.all.count(game::owns)}/64 • $${game.format(game.cash)} • drag to explore", color = Mint, fontSize = 11.sp)
+            }
+            TextButton(onClick = { pan = Offset.Zero; zoom = .78f }) { Text("CENTER") }
         }
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Tech.entries.forEach { tech ->
-                    FilterChip(selected = selected == tech, onClick = { selected = tech },
-                        label = { Text("${tech.title} ${game.level(tech)}/8") })
+        Box(Modifier.fillMaxSize()) {
+            Canvas(Modifier.fillMaxSize()
+                .pointerInput(Unit) { detectTransformGestures { _, change, scale, _ ->
+                    pan += change; zoom = (zoom * scale).coerceIn(.42f, 2.0f)
+                } }
+                .pointerInput(zoom, pan) { detectTapGestures { point ->
+                    val center = Offset(size.width / 2f, size.height / 2f) + pan
+                    selected = ResearchTree.all.minByOrNull { node ->
+                        val pos = nodePosition(node); hypot(point.x - center.x - pos.x * zoom, point.y - center.y - pos.y * zoom)
+                    }?.takeIf { node ->
+                        val pos = nodePosition(node)
+                        hypot(point.x - center.x - pos.x * zoom, point.y - center.y - pos.y * zoom) < 30f * zoom + 22f
+                    }
+                } }
+            ) {
+                val center = Offset(size.width / 2, size.height / 2) + pan
+                drawRect(Brush.radialGradient(listOf(Color(0xff183051), Night), center = center, radius = size.maxDimension))
+                for (ring in 0..7) drawCircle(Color.White.copy(alpha = .07f), (100 + ring * 75) * zoom, center, style = Stroke(width = 1f))
+                ResearchTree.all.forEach { node ->
+                    val end = center + nodePosition(node) * zoom
+                    node.requires.forEach { id ->
+                        ResearchTree.all.find { it.id == id }?.let { parent ->
+                            val start = center + nodePosition(parent) * zoom
+                            drawLine(if (game.owns(node)) colors[node.branch.ordinal].copy(alpha = .85f) else Color.White.copy(alpha = .22f), start, end, strokeWidth = if (game.owns(node)) 4f else 2f)
+                        }
+                    }
+                    if (node.tier == 0) drawLine(colors[node.branch.ordinal].copy(alpha = .5f), center, end, strokeWidth = 3f)
                 }
-        }
-        val nodes = ResearchTree.nodes(selected)
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            item {
-                Text(selected.description.uppercase(), color = Mint, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                Text("Buy connected discoveries with cash. Both forks join at tier six.", color = Muted, fontSize = 12.sp)
-            }
-            item { ResearchNodeCard(game, nodes[0], Modifier.fillMaxWidth()) }
-            item { TreeConnector(fork = true) }
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                    ResearchNodeCard(game, nodes[1], Modifier.weight(1f))
-                    ResearchNodeCard(game, nodes[2], Modifier.weight(1f))
+                drawCircle(Mint.copy(alpha = .14f), 37f * zoom, center)
+                drawCircle(Mint, 22f * zoom, center)
+                ResearchTree.all.forEach { node ->
+                    val pos = center + nodePosition(node) * zoom
+                    val owned = game.owns(node); val available = game.unlocked(node)
+                    val color = colors[node.branch.ordinal]
+                    drawCircle(if (owned) color else Color(0xff172238), if (node == selected) 23f * zoom else 18f * zoom, pos)
+                    drawCircle(if (owned || available) color else Color.White.copy(alpha = .25f), 18f * zoom, pos, style = Stroke(width = 2.5f))
+                }
+                drawIntoCanvas { canvas ->
+                    val paint = Paint().apply { isAntiAlias = true; textAlign = Paint.Align.CENTER; typeface = android.graphics.Typeface.DEFAULT_BOLD }
+                    paint.color = android.graphics.Color.rgb(9, 16, 34); paint.textSize = 22f * zoom
+                    canvas.nativeCanvas.drawText("✦", center.x, center.y + 7f * zoom, paint)
+                    val glyphs = listOf("↗", "☁", "◆", "≈", "ϟ", "✈", "◉", "★")
+                    ResearchTree.all.forEach { node ->
+                        val pos = center + nodePosition(node) * zoom
+                        paint.color = if (game.owns(node)) android.graphics.Color.rgb(9, 16, 34) else android.graphics.Color.WHITE
+                        paint.textSize = 19f * zoom
+                        canvas.nativeCanvas.drawText(glyphs[node.branch.ordinal], pos.x, pos.y + 6f * zoom, paint)
+                        if (zoom >= .72f && node.tier == 0) {
+                            paint.color = android.graphics.Color.WHITE; paint.textSize = 12f * zoom
+                            canvas.nativeCanvas.drawText(node.branch.title, pos.x, pos.y - 28f * zoom, paint)
+                        }
+                    }
                 }
             }
-            item { TreeConnector(fork = false) }
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                    ResearchNodeCard(game, nodes[3], Modifier.weight(1f))
-                    ResearchNodeCard(game, nodes[4], Modifier.weight(1f))
+            Column(Modifier.align(Alignment.TopStart).padding(12.dp)) {
+                Text("PINCH TO ZOOM", color = Muted, fontSize = 10.sp)
+                Text("TAP A NODE", color = Muted, fontSize = 10.sp)
+            }
+            Row(Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+                TextButton(onClick = { zoom = (zoom / 1.3f).coerceAtLeast(.42f) }) { Text("−") }
+                TextButton(onClick = { zoom = (zoom * 1.3f).coerceAtMost(2f) }) { Text("+") }
+            }
+            selected?.let { node ->
+                Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp).background(Card, RoundedCornerShape(17.dp)).padding(14.dp)) {
+                    Row { Text(listOf("↗", "☁", "◆", "≈", "ϟ", "✈", "◉", "★")[node.branch.ordinal], color = colors[node.branch.ordinal], fontSize = 22.sp)
+                        Spacer(Modifier.width(10.dp)); Column { Text(node.name, color = Color.White, fontWeight = FontWeight.Black)
+                            Text("${node.branch.title} • ${node.effect}", color = Mint, fontSize = 12.sp) } }
+                    if (node.requires.isNotEmpty()) {
+                        val parents = node.requires.mapNotNull { id -> ResearchTree.all.find { it.id == id }?.name }
+                        Text("Requires ${parents.joinToString(" + ")}", color = Muted, fontSize = 11.sp)
+                    }
+                    if (game.owns(node)) Text("DISCOVERED", color = Mint, fontWeight = FontWeight.Bold)
+                    else Button(onClick = { game.buyNode(node) }, enabled = game.unlocked(node) && game.cash >= node.cost, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (game.unlocked(node)) "DISCOVER • $${game.format(node.cost)}" else "LOCKED")
+                    }
                 }
-            }
-            item { TreeConnector(fork = false) }
-            items(nodes.drop(5)) { node ->
-                ResearchNodeCard(game, node, Modifier.fillMaxWidth())
-                if (node.tier < 7) TreeConnector(fork = false)
-            }
-        }
-    }
-}
-
-@Composable private fun TreeConnector(fork: Boolean) {
-    Canvas(Modifier.fillMaxWidth().height(23.dp)) {
-        val c = size.width / 2
-        if (fork) {
-            drawLine(Mint.copy(alpha = .55f), Offset(c, 0f), Offset(size.width * .25f, size.height), strokeWidth = 3f)
-            drawLine(Mint.copy(alpha = .55f), Offset(c, 0f), Offset(size.width * .75f, size.height), strokeWidth = 3f)
-        } else {
-            drawLine(Mint.copy(alpha = .4f), Offset(size.width * .25f, 0f), Offset(c, size.height), strokeWidth = 2f)
-            drawLine(Mint.copy(alpha = .4f), Offset(size.width * .75f, 0f), Offset(c, size.height), strokeWidth = 2f)
-        }
-    }
-}
-
-@Composable private fun ResearchNodeCard(game: GameEngine, node: ResearchNode, modifier: Modifier) {
-    val owned = game.owns(node)
-    val unlocked = game.unlocked(node)
-    Column(modifier.background(Card, RoundedCornerShape(15.dp)).padding(12.dp)) {
-        Text(if (owned) "◆ DISCOVERED" else if (unlocked) "◇ AVAILABLE" else "○ LOCKED", color = if (owned) Mint else Muted,
-            fontWeight = FontWeight.Black, fontSize = 10.sp)
-        Text(node.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 2)
-        Text(node.effect, color = Mint, fontSize = 11.sp, minLines = 2)
-        if (node.requires.isNotEmpty()) {
-            val parents = node.requires.mapNotNull { id -> ResearchTree.all.find { it.id == id }?.name }
-            Text("Needs: ${parents.joinToString(" + ")}", color = Muted, fontSize = 10.sp, maxLines = 2)
-        }
-        if (!owned) {
-            Spacer(Modifier.height(7.dp))
-            Button(onClick = { game.buyNode(node) }, enabled = unlocked && game.cash >= node.cost,
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp), modifier = Modifier.fillMaxWidth()) {
-                Text(if (unlocked) "$${game.format(node.cost)}" else "LOCKED", fontSize = 11.sp)
             }
         }
     }
@@ -317,6 +399,34 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@Composable private fun GolferScreen(game: GameEngine) {
+    val revision = game.revision
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { Header("GOLFER ROSTER", "Buy golfers in order. Higher power and earnings cost more.") }
+        items(game.golfers.indices.toList()) { id ->
+            val player = game.golfers[id]
+            val owned = game.ownsGolfer(id)
+            CardBox {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Person, null, Modifier.size(44.dp), tint = player.look)
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text(player.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        Text(player.description, color = Muted, fontSize = 11.sp)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("${"%.2f".format(player.power)}× launch  •  ${"%.2f".format(player.cashBonus)}× cash", color = Mint, fontSize = 13.sp)
+                if (id == game.selectedGolfer) Text("CURRENT GOLFER", color = Mint, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                else if (owned) Button(onClick = { game.equipGolfer(id) }, modifier = Modifier.fillMaxWidth()) { Text("PLAY AS ${player.name.uppercase()}") }
+                else Button(onClick = { game.buyGolfer(id) }, enabled = id == game.nextGolferUnlock && game.cash >= player.cost, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (id == game.nextGolferUnlock) "UNLOCK • $${game.format(player.cost)}" else "UNLOCK PREVIOUS GOLFER FIRST")
+                }
+            }
+        }
+    }
+}
+
 @Composable private fun AscendScreen(game: GameEngine) {
     var confirm by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -334,9 +444,24 @@ class MainActivity : ComponentActivity() {
                 Modifier.fillMaxWidth().padding(12.dp), color = Muted, fontSize = 12.sp, textAlign = TextAlign.Center)
             Button(onClick = { confirm = true }, enabled = game.ascendAvailable, modifier = Modifier.fillMaxWidth()) { Text("ASCEND AND RESET RUN") }
         }
+        Spacer(Modifier.height(14.dp))
+        Text("PERMANENT RELIC APPAREL  •  ${game.relicBank} TO SPEND", color = Mint, fontWeight = FontWeight.Black)
+        Spacer(Modifier.height(8.dp))
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            game.apparel.forEach { item ->
+                CardBox {
+                    Text("${item.icon}  ${item.name}", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(item.description, color = Mint, fontSize = 12.sp)
+                    if (game.ownsApparel(item.id)) Text("OWNED • PERSISTS THROUGH ASCENSION", color = Muted, fontSize = 10.sp)
+                    else Button(onClick = { game.buyApparel(item.id) }, enabled = game.relicBank >= item.price, modifier = Modifier.fillMaxWidth()) {
+                        Text("BUY FOR ${item.price} RELICS")
+                    }
+                }
+            }
+        }
     }
     if (confirm) AlertDialog(onDismissRequest = { confirm = false }, title = { Text("Ascend for +${game.potentialRelics} relics?") },
-        text = { Text("Cash, clubs, research, and planet progress reset. Permanent relics remain.") },
+        text = { Text("Cash, clubs, research, and planet progress reset. Golfers, apparel, and permanent relics remain.") },
         confirmButton = { TextButton(onClick = { game.ascend(); confirm = false }) { Text("Ascend") } },
         dismissButton = { TextButton(onClick = { confirm = false }) { Text("Cancel") } })
 }

@@ -7,12 +7,20 @@ android {
     namespace = "com.orbitdrive.game"
     compileSdk = 35
     defaultConfig {
-        applicationId = "com.orbitdrive.game"
+        applicationId = "com.orbitdrive.game.preview"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("preview-debug.keystore")
+            storePassword = "android"
+            keyAlias = "orbitpreview"
+            keyPassword = "android"
+        }
     }
     buildFeatures { compose = true }
     compileOptions {
