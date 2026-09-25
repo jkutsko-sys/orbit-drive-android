@@ -13,3 +13,7 @@ Change `applicationId` before Play Store release. The current project is a playa
 This project includes `.github/workflows/android-apk.yml`. Put the **contents** of this folder at the root of a GitHub repository (keep the hidden `.github` folder). In GitHub, open Actions → Build Android test APK → Run workflow. When green, open the run → Artifacts → OrbitDrive-Android-test-APK. Download the artifact ZIP to your Android phone, extract `app-debug.apk`, tap it, and allow installation from your browser or file manager if prompted. This is a debug APK for personal testing. It is not suitable for Google Play publication.
 
 The first cloud build is the actual compile check. If it fails, keep the workflow log; a source-only review cannot establish the APK works.
+
+## If a swing still crashes
+
+Restart the app. The next launch displays the captured exception; take a screenshot and send it to the developer. The swing handler was replaced with a lifecycle-safe press gesture in this build, but only a physical-device test can confirm the original failure is gone.

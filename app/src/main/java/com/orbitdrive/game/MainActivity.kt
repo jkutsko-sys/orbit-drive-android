@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -41,13 +43,24 @@ private val Muted = Color(0xffa6afc3)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val crashPrefs = getSharedPreferences("orbit_crash_report", MODE_PRIVATE)
+        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, error ->
+            crashPrefs.edit().putString("last", error.stackTraceToString().take(4000)).commit()
+            previousHandler?.uncaughtException(thread, error)
+        }
         val game = GameEngine(this)
-        setContent { OrbitApp(game) }
+        setContent { OrbitApp(game, crashPrefs.getString("last", null)) { crashPrefs.edit().remove("last").apply() } }
     }
 }
 
-@Composable private fun OrbitApp(game: GameEngine) {
+@Composable private fun OrbitApp(game: GameEngine, previousCrash: String?, clearCrash: () -> Unit) {
     var tab by remember { mutableIntStateOf(0) }
+    var crash by remember { mutableStateOf(previousCrash) }
+    if (crash != null) AlertDialog(onDismissRequest = { crash = null; clearCrash() },
+        title = { Text("Previous launch ended unexpectedly") },
+        text = { Text(crash ?: "", fontSize = 10.sp) },
+        confirmButton = { TextButton(onClick = { crash = null; clearCrash() }) { Text("Close") } })
     val pages = listOf("Range", "Research", "Clubs", "Ascend")
     MaterialTheme(colorScheme = darkColorScheme(primary = Mint, surface = Card, background = Night)) {
         Scaffold(containerColor = Night, bottomBar = {
@@ -142,17 +155,11 @@ class MainActivity : ComponentActivity() {
             } else {
                 // Press starts charging immediately; lift releases. The pointer gesture also handles short taps.
                 Box(Modifier.width(170.dp).height(65.dp).background(Mint, RoundedCornerShape(15.dp))
-                    .pointerInput(Unit) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                val down = awaitPointerEvent().changes.firstOrNull { it.pressed } ?: continue
-                                game.startCharge()
-                                while (true) {
-                                    val event = awaitPointerEvent()
-                                    if (event.changes.none { it.pressed }) { game.release(); break }
-                                }
-                            }
-                        }
+                    .pointerInput(game) {
+                        detectTapGestures(onPress = {
+                            game.startCharge()
+                            try { tryAwaitRelease() } finally { game.release() }
+                        })
                     }, contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         LinearProgressIndicator(progress = { game.charge.toFloat() }, modifier = Modifier.width(130.dp).height(5.dp), color = Color(0xfffeac5b), trackColor = Night.copy(alpha = .2f))
@@ -201,21 +208,48 @@ class MainActivity : ComponentActivity() {
 
 @Composable private fun ResearchScreen(game: GameEngine) {
     val revision = game.revision
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item { Header("RESEARCH LAB", "Specialize your shots. Every path changes the flight.") }
-        items(Tech.entries) { tech ->
-            val level = game.level(tech)
-            CardBox {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(tech.title, color = Color.White, fontWeight = FontWeight.Bold)
-                    Text("$level/${tech.max}", color = Mint)
+    var selected by remember { mutableStateOf(Tech.POWER) }
+    Column(Modifier.fillMaxSize()) {
+        Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
+            Header("RESEARCH CONSTELLATION", "64 named discoveries across eight branching paths.")
+            Text("$${game.format(game.cash)} CASH  •  ${ResearchTree.all.count(game::owns)}/64 DISCOVERED", color = Mint, fontSize = 12.sp)
+        }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Tech.entries.forEach { tech ->
+                    FilterChip(selected = selected == tech, onClick = { selected = tech },
+                        label = { Text("${tech.title} ${game.level(tech)}/8") })
                 }
-                Text(tech.description, color = Muted, fontSize = 12.sp)
-                Spacer(Modifier.height(12.dp))
-                LinearProgressIndicator(progress = { level.toFloat() / tech.max }, modifier = Modifier.fillMaxWidth().height(5.dp), color = Mint)
-                Spacer(Modifier.height(10.dp))
-                Button(onClick = { game.buyTech(tech) }, enabled = level < tech.max && game.cash >= game.techCost(tech), modifier = Modifier.fillMaxWidth()) {
-                    Text(if (level == tech.max) "MAXED" else "RESEARCH NEXT LEVEL  •  $${game.format(game.techCost(tech))}")
+        }
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+            item {
+                Text(selected.description.uppercase(), color = Mint, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                Text("Buy connected discoveries with cash. Forks join at tier six.", color = Muted, fontSize = 12.sp)
+            }
+            items(ResearchTree.nodes(selected)) { node ->
+                val owned = game.owns(node)
+                val unlocked = game.unlocked(node)
+                val parentNames = node.requires.mapNotNull { id -> ResearchTree.all.find { it.id == id }?.name }
+                CardBox {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(if (owned) "◆" else if (unlocked) "◇" else "○", color = if (owned) Mint else Muted, fontSize = 24.sp)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(node.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                            Text(node.effect, color = Mint, fontSize = 12.sp)
+                        }
+                        Text("T${node.tier + 1}", color = Muted, fontSize = 11.sp)
+                    }
+                    if (parentNames.isNotEmpty()) {
+                        Spacer(Modifier.height(7.dp))
+                        Text("↳ ${parentNames.joinToString(" + ")}", color = Muted, fontSize = 11.sp)
+                    }
+                    if (!owned) {
+                        Spacer(Modifier.height(9.dp))
+                        Button(onClick = { game.buyNode(node) }, enabled = unlocked && game.cash >= node.cost,
+                            modifier = Modifier.fillMaxWidth()) {
+                            Text(if (unlocked) "DISCOVER  •  $${game.format(node.cost)}" else "LOCKED • REQUIRES CONNECTED NODE")
+                        }
+                    }
                 }
             }
         }
@@ -225,7 +259,7 @@ class MainActivity : ComponentActivity() {
 @Composable private fun ClubsScreen(game: GameEngine) {
     val revision = game.revision
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item { Header("THE PRO SHOP", "Own a club, then improve its speed level by level.") }
+        item { Header("THE PRO SHOP", "15 drivers from junkyard to deep space. Upgrade each club’s swing.") }
         items(game.clubs.indices.toList()) { id ->
             val club = game.clubs[id]
             CardBox {
