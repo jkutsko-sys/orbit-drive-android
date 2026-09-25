@@ -185,6 +185,7 @@ internal class GameEngine(context: Context) {
     var lightningCharges by mutableStateOf(0); private set
     var planetHP by mutableStateOf(0.0); private set
     var earned by mutableStateOf(0.0); private set
+    var shotElapsed by mutableStateOf(0.0); private set
     var combo by mutableStateOf(0); private set
     var electrifiedFor by mutableStateOf(0.0); private set
     var lightningFlashFor by mutableStateOf(0.0); private set
@@ -236,7 +237,7 @@ internal class GameEngine(context: Context) {
     }
     fun release() {
         if (phase != Phase.CHARGING) return
-        phase = Phase.FLYING; distance = 0.0; previousDistance = 0.0; altitude = 1.0; flightTime = 0.0
+        phase = Phase.FLYING; distance = 0.0; previousDistance = 0.0; altitude = 1.0; flightTime = 0.0; shotElapsed = 0.0
         bounceCount = 0; combo = 0; earned = 0.0; planeCarries = 0; secondSwingUsed = false; skyhookUsed = false; deepLiftUsed = false
         brokenObstacles.clear(); electrifiedFor = 0.0; lightningFlashFor = 0.0; planeSpriteFor = 0.0; planetEffectFor = 0.0; planetImpactID = null
         lightningCharges = if (level(Tech.LIGHTNING) > 0 || hasClubPerk(7)) 1 +
@@ -265,7 +266,7 @@ internal class GameEngine(context: Context) {
         message = if (electrifiedFor > 0) "⚡ ELECTRIFIED BALL • obstacles shatter" else "⚡ LIGHTNING BOOST +$impulse"
     }
     fun tick(step: Double) {
-        val dt = step.coerceIn(0.0, 0.05)
+        val dt = step.coerceIn(0.0, 0.5)
         lightningFlashFor = (lightningFlashFor - dt).coerceAtLeast(0.0)
         planeSpriteFor = (planeSpriteFor - dt).coerceAtLeast(0.0)
         planetEffectFor = (planetEffectFor - dt).coerceAtLeast(0.0)
@@ -276,9 +277,13 @@ internal class GameEngine(context: Context) {
             return
         }
         if (phase != Phase.FLYING) return
-        repeat(4) {
-            if (phase != Phase.FLYING) return@repeat
-            val h = dt / 4
+        // Advance the original 240-second physics trajectory within 24.5 real seconds.
+        // Distance, collision speeds and rewards remain in simulation units; only playback time changes.
+        shotElapsed = (shotElapsed + dt).coerceAtMost(24.5)
+        val progress = shotElapsed / 24.5
+        val targetFlightTime = shotElapsed + (240.0 - 24.5) * progress * progress
+        while (phase == Phase.FLYING && flightTime + 1e-9 < targetFlightTime) {
+            val h = min(0.0125, targetFlightTime - flightTime)
             flightTime += h; previousDistance = distance
             electrifiedFor = (electrifiedFor - h).coerceAtLeast(0.0)
             vy -= 45 / (1 + level(Tech.GRAVITY) * 0.24 + (if (hasClubPerk(8)) .35 else 0.0)) * h
@@ -350,12 +355,13 @@ internal class GameEngine(context: Context) {
                     vx *= (1 - groundDrag * h).coerceAtLeast(0.0)
                     if (vx < 2 && nodeEffect(Tech.POWER, 15) && !secondSwingUsed) {
                         secondSwingUsed = true; vx = max(30.0, club.swing * .5); vy = 15.0; message = "↗ Second Swing!"
-                    } else if (vx < 2 || flightTime > 240) finish()
+                    } else if (vx < 2 || flightTime >= 240) finish()
                 }
             }
             speed = hypot(vx, vy)
-            if (flightTime > 240) finish()
+            if (flightTime >= 240) finish()
         }
+        if (shotElapsed >= 24.5 && phase == Phase.FLYING) finish()
     }
     private fun finish() {
         if (phase != Phase.FLYING) return

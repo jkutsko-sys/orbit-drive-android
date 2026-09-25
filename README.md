@@ -39,3 +39,9 @@ The research constellation contains 192 unique purchasable nodes, with added spl
 ## Preview 0.6
 
 The eight research branches contain three effect keystones each. Clubs now have individual perks and previously purchased clubs can be equipped from the shop. Carbon Slice launches two visible balls, doubles shot income and reduces launch speed by 18%; the final Zenith club combines earlier club perks without that penalty. Settings include separate music and effects controls, original procedural range/orbit/deep-space arrangements, and a one-time `ADMIN` preview voucher worth $10,000. The voucher only works in a debuggable build and remains redeemed through ascension.
+
+## Preview 0.7
+
+Shots now accelerate through the existing physics timeline as they travel farther and finish within 24.5 seconds of active gameplay. The physics still integrates distance, drag, bounce, impacts and cash in the same simulation units; this changes playback duration rather than the club's reach. The emulator suite checks a long shot against both fine and coarse frame intervals and confirms that the next shot becomes available.
+
+The Settings gear sits beside the cash total on the Range screen. An instrumented UI test verifies that the dialog opens and its voucher controls are accessible.

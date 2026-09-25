@@ -74,7 +74,6 @@ class MainActivity : ComponentActivity() {
     var settingsOpen by remember { mutableStateOf(false) }
     LaunchedEffect(game.soundEventId) { if (game.soundEventId > 0) audio.cue(game.soundCue) }
     LaunchedEffect(game.distance) { audio.setArea(game.distance) }
-    if (settingsOpen) SettingsDialog(game, audio) { settingsOpen = false }
     var crash by remember { mutableStateOf(previousCrash) }
     if (crash != null) AlertDialog(onDismissRequest = { crash = null; clearCrash() },
         title = { Text("Previous launch ended unexpectedly") },
@@ -82,11 +81,8 @@ class MainActivity : ComponentActivity() {
         confirmButton = { TextButton(onClick = { crash = null; clearCrash() }) { Text("Close") } })
     val pages = listOf("Range", "Research", "Clubs", "Golfer", "Ascend")
     MaterialTheme(colorScheme = darkColorScheme(primary = Mint, surface = Card, background = Night)) {
-        Scaffold(containerColor = Night, topBar = {
-            Row(Modifier.fillMaxWidth().background(Night).padding(horizontal = 12.dp), horizontalArrangement = Arrangement.End) {
-                IconButton(onClick = { settingsOpen = true }, modifier = Modifier.testTag("settings")) { Icon(Icons.Default.Settings, "Settings", tint = Mint) }
-            }
-        }, bottomBar = {
+        if (settingsOpen) SettingsDialog(game, audio) { settingsOpen = false }
+        Scaffold(containerColor = Night, bottomBar = {
             NavigationBar(containerColor = Card) {
                 pages.forEachIndexed { index, title ->
                     NavigationBarItem(selected = tab == index, onClick = { tab = index },
@@ -97,7 +93,7 @@ class MainActivity : ComponentActivity() {
         }) { padding ->
             Box(Modifier.fillMaxSize().padding(padding)) {
                 when (tab) {
-                    0 -> RangeScreen(game, true)
+                    0 -> RangeScreen(game, true) { settingsOpen = true }
                     1 -> ResearchScreen(game)
                     2 -> ClubsScreen(game)
                     3 -> GolferScreen(game)
@@ -121,13 +117,13 @@ class MainActivity : ComponentActivity() {
     Text(text, modifier.background(Color.White.copy(alpha = .07f), RoundedCornerShape(9.dp)).padding(9.dp), color = Color.White, fontSize = 12.sp)
 }
 
-@Composable private fun RangeScreen(game: GameEngine, visible: Boolean) {
+@Composable private fun RangeScreen(game: GameEngine, visible: Boolean, openSettings: () -> Unit) {
     LaunchedEffect(game, visible) {
         var last = System.nanoTime()
         while (visible) {
             delay(16)
             val now = System.nanoTime()
-            game.tick(((now - last) / 1e9).coerceAtMost(.05))
+            game.tick(((now - last) / 1e9).coerceAtMost(.5))
             last = now
         }
     }
@@ -138,7 +134,12 @@ class MainActivity : ComponentActivity() {
                 Text("THE INFINITE RANGE", fontSize = 10.sp, letterSpacing = 3.sp, color = Mint)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text("$${game.format(game.cash)}", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Mint)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = openSettings, modifier = Modifier.testTag("settings")) {
+                        Icon(Icons.Default.Settings, "Settings", tint = Mint)
+                    }
+                    Text("$${game.format(game.cash)}", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Mint)
+                }
                 Text("BEST ${game.format(game.bestDistance)} m", fontSize = 10.sp, color = Muted)
             }
         }
