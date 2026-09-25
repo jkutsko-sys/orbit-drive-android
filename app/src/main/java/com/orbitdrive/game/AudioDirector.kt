@@ -27,11 +27,15 @@ internal class AudioDirector(context: Context) {
         intArrayOf(220, 330, 440, 587, 440, 330, 247, 392, 220, 349, 440, 659, 440, 349, 294, 392),
         intArrayOf(196, 294, 392, 587, 523, 392, 247, 370, 196, 330, 494, 659, 587, 494, 330, 247)
     )
-    private val track = AudioTrack.Builder()
-        .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-        .setAudioFormat(AudioFormat.Builder().setSampleRate(rate).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
-        .setBufferSizeInBytes(rate / 2)
-        .setTransferMode(AudioTrack.MODE_STREAM).build()
+    private val track: AudioTrack? = runCatching {
+        val minimum = AudioTrack.getMinBufferSize(rate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
+        require(minimum > 0)
+        AudioTrack.Builder()
+            .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+            .setAudioFormat(AudioFormat.Builder().setSampleRate(rate).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
+            .setBufferSizeInBytes(maxOf(minimum * 2, rate * 2))
+            .setTransferMode(AudioTrack.MODE_STREAM).build()
+    }.getOrNull()
     private val worker = Thread({ loop() }, "orbit-audio").apply { isDaemon = true; start() }
 
     fun setArea(distance: Double) { area = if (distance < 7000) 0 else if (distance < 300000) 1 else 2 }
@@ -41,7 +45,8 @@ internal class AudioDirector(context: Context) {
     fun adjustMusicVolume(value: Float) { musicVolume = value; prefs.edit().putFloat("musicVolume", value).apply() }
     fun adjustEffectsVolume(value: Float) { effectsVolume = value; prefs.edit().putFloat("effectsVolume", value).apply() }
     private fun loop() {
-        track.play()
+        val output = track ?: return
+        output.play()
         val buffer = ShortArray(1024)
         var sample = 0L
         var effect = 0
@@ -65,9 +70,9 @@ internal class AudioDirector(context: Context) {
                 if (effect != 0 && ++effectAge >= duration) effect = 0
                 sample++
             }
-            track.write(buffer, 0, buffer.size)
+            output.write(buffer, 0, buffer.size)
         }
-        track.stop(); track.release()
+        output.stop(); output.release()
     }
     fun release() { playing = false; worker.interrupt() }
 }
