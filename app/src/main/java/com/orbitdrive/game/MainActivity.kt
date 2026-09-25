@@ -19,6 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.animation.core.*
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -183,6 +185,31 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: Color, scale: Float) {
+    fun p(dx: Float, dy: Float) = Offset(x + dx * scale, ground + dy * scale)
+    val skin = if (id == 4) Color(0xffb8875b) else Color(0xffebc5a1)
+    val dark = Color(0xff283449)
+    drawCircle(Color.Black.copy(alpha = .18f), 15f * scale, p(0f, -1f))
+    drawLine(dark, p(-5f, -22f), p(-11f, -2f), strokeWidth = 6f * scale)
+    drawLine(dark, p(5f, -22f), p(12f, -2f), strokeWidth = 6f * scale)
+    drawRoundRect(shirt, topLeft = p(-11f, -48f), size = Size(23f * scale, 29f * scale), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f * scale))
+    drawLine(skin, p(9f, -43f), p(17f, -34f), strokeWidth = 6f * scale)
+    drawLine(skin, p(17f, -34f), p(13f, -31f), strokeWidth = 5f * scale)
+    if (id == 4) {
+        drawCircle(skin, 13f * scale, p(1f, -60f))
+        drawCircle(skin, 4f * scale, p(-9f, -70f))
+        drawCircle(skin, 4f * scale, p(10f, -70f))
+        drawRoundRect(Color(0xffd1a174), topLeft = p(1f, -57f), size = Size(14f * scale, 9f * scale), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * scale))
+        drawCircle(dark, 1.5f * scale, p(-3f, -63f)); drawCircle(dark, 1.5f * scale, p(8f, -63f))
+        drawCircle(dark, 1.5f * scale, p(11f, -54f))
+    } else {
+        drawCircle(skin, 11f * scale, p(0f, -60f))
+        drawRoundRect(dark, topLeft = p(-12f, -72f), size = Size(24f * scale, 7f * scale), cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f * scale))
+        drawLine(dark, p(3f, -68f), p(18f, -68f), strokeWidth = 3f * scale)
+        drawCircle(dark, 1.3f * scale, p(-4f, -61f)); drawCircle(dark, 1.3f * scale, p(5f, -61f))
+    }
+}
+
 @Composable private fun RangeArt(game: GameEngine, modifier: Modifier) {
     Canvas(modifier) {
         val space = game.distance > 7000
@@ -193,22 +220,22 @@ class MainActivity : ComponentActivity() {
             drawCircle(Color.White.copy(alpha = if (space) .75f else .15f), radius = if (i % 4 == 0) 2.5f else 1f, center = Offset(x, y))
         }
         val ground = size.height * .8f
-        val drift = (game.distance * .18).toFloat()
+        val drift = (game.distance * .9).toFloat()
         if (!space) {
             repeat(5) { i ->
-                val x = ((i * size.width / 3 - drift * .35f) % (size.width + 160) + size.width + 160) % (size.width + 160) - 70
+                val x = ((i * size.width / 3 - drift * .7f) % (size.width + 160) + size.width + 160) % (size.width + 160) - 70
                 val y = size.height * (.19f + (i % 3) * .12f)
                 drawCircle(Color.White.copy(alpha = .45f), 22f, Offset(x, y))
                 drawCircle(Color.White.copy(alpha = .45f), 16f, Offset(x + 21, y + 3))
                 drawCircle(Color.White.copy(alpha = .45f), 15f, Offset(x - 19, y + 5))
             }
             repeat(4) { i ->
-                val x = ((i * size.width / 2 - drift * .12f) % (size.width + 200) + size.width + 200) % (size.width + 200)
+                val x = ((i * size.width / 2 - drift * .4f) % (size.width + 200) + size.width + 200) % (size.width + 200)
                 drawLine(Color(0xff243b52), Offset(x, ground - 45), Offset(x, ground), strokeWidth = 22f)
                 drawRect(Color(0xff253c54), Offset(x - 21, ground - 52), Size(42f, 8f))
             }
             repeat(3) { i ->
-                val x = ((i * size.width / 2 - drift * .45f) % (size.width + 120) + size.width + 120) % (size.width + 120)
+                val x = ((i * size.width / 2 - drift * .8f) % (size.width + 120) + size.width + 120) % (size.width + 120)
                 val y = size.height * (.13f + i * .055f)
                 drawLine(Color(0xff263d56), Offset(x, y), Offset(x + 8, y - 4), strokeWidth = 2f)
                 drawLine(Color(0xff263d56), Offset(x + 8, y - 4), Offset(x + 16, y), strokeWidth = 2f)
@@ -217,7 +244,7 @@ class MainActivity : ComponentActivity() {
         drawRect(if (space) Color(0xff302746) else Color(0xff1e664d), topLeft = Offset(0f, ground), size = Size(size.width, size.height - ground))
         repeat(6) { i -> drawLine(Color.White.copy(alpha = .08f), Offset(0f, ground + i * 22f), Offset(size.width, ground + i * 22f)) }
         repeat(12) { i ->
-            val x = ((i * 90f - drift * 1.2f) % (size.width + 90) + size.width + 90) % (size.width + 90)
+            val x = ((i * 90f - drift * 1.8f) % (size.width + 90) + size.width + 90) % (size.width + 90)
             drawLine(Color.White.copy(alpha = .17f), Offset(x, ground + 18), Offset(x + 25, ground + 18), strokeWidth = 2f)
         }
         val ballX = size.width * if (game.phase == Phase.READY || game.phase == Phase.CHARGING) .18f else .36f
@@ -225,21 +252,41 @@ class MainActivity : ComponentActivity() {
         val ballY = max(size.height * .15f, ground - 10 - height)
         drawCircle(Color.Black.copy(alpha = .25f), radius = 12f, center = Offset(ballX, ground))
         if (game.phase == Phase.FLYING) drawLine(Mint.copy(alpha = .65f), Offset(ballX - min(130f, (game.speed * .3).toFloat()), ballY + 20), Offset(ballX - 8, ballY + 2), strokeWidth = 6f)
-        drawCircle(Color.White, radius = 9f, center = Offset(ballX, ballY))
+        val ball = game.ball
+        drawCircle(ball.tint, radius = 11f, center = Offset(ballX, ballY))
+        drawCircle(ball.stripe.copy(alpha = .8f), radius = 11f, center = Offset(ballX, ballY), style = Stroke(width = 2f))
         val spin = (game.distance * .12).toFloat()
-        drawLine(Color(0xff263c5c), Offset(ballX + cos(spin) * 7f, ballY + sin(spin) * 7f),
-            Offset(ballX - cos(spin) * 7f, ballY - sin(spin) * 7f), strokeWidth = 2f)
+        drawLine(ball.stripe, Offset(ballX + cos(spin) * 8f, ballY + sin(spin) * 8f),
+            Offset(ballX - cos(spin) * 8f, ballY - sin(spin) * 8f), strokeWidth = 2.4f)
+        drawIntoCanvas { canvas ->
+            val label = Paint().apply { isAntiAlias = true; color = android.graphics.Color.rgb(30, 38, 55);
+                textSize = 10f; textAlign = Paint.Align.CENTER; typeface = android.graphics.Typeface.DEFAULT_BOLD }
+            canvas.nativeCanvas.drawText(ball.mark, ballX, ballY + 3f, label)
+        }
         if (game.phase == Phase.READY || game.phase == Phase.CHARGING) {
             val gx = ballX - 38f
-            drawCircle(game.golfer.look, 10f, Offset(gx, ground - 57))
-            drawLine(game.golfer.look, Offset(gx, ground - 47), Offset(gx + 4, ground - 20), strokeWidth = 10f)
-            drawLine(Color(0xffe2e9ef), Offset(gx + 4, ground - 20), Offset(gx - 8, ground), strokeWidth = 5f)
-            drawLine(Color(0xffe2e9ef), Offset(gx + 4, ground - 20), Offset(gx + 17, ground), strokeWidth = 5f)
+            drawGolferSprite(gx, ground, game.selectedGolfer, game.golfer.look, 1f)
             val clubColor = listOf(Color.Gray, Color(0xffc5a77e), Color.Cyan, Color(0xffb4d0d5), Color(0xffffc36a), Color(0xfff07d74), Color.Magenta)[game.ownedClub % 7]
             val sweep = if (game.phase == Phase.CHARGING) game.charge.toFloat() * 42f else 0f
-            drawLine(Color(0xfff4dfbe), Offset(gx + 4, ground - 38), Offset(gx + 19, ground - 38 - sweep * .25f), strokeWidth = 4f)
-            drawLine(clubColor, Offset(gx + 19, ground - 38 - sweep * .25f), Offset(ballX - 5, ground - 13 - sweep), strokeWidth = 3f + game.ownedClub * .13f)
+            drawLine(clubColor, Offset(gx + 14, ground - 35), Offset(ballX - 5, ground - 13 - sweep), strokeWidth = 3f + game.ownedClub * .13f)
             drawLine(clubColor, Offset(ballX - 13, ground - 13 - sweep), Offset(ballX - 1, ground - 13 - sweep), strokeWidth = 7f)
+        }
+        if (game.phase == Phase.FLYING && game.speed > 20) {
+            repeat(7) { i ->
+                val x = ((i * 97f - drift * 2.5f) % size.width + size.width) % size.width
+                val y = ground * (.55f + (i % 4) * .07f)
+                drawLine(Color.White.copy(alpha = .09f + min(.23f, game.speed.toFloat() / 2000f)), Offset(x, y), Offset(x + 25 + min(85f, game.speed.toFloat() * .12f), y), strokeWidth = 2f)
+            }
+        }
+        if (game.distance < 10000) {
+            val baseMarker = (game.distance / 100).toInt()
+            for (marker in baseMarker..baseMarker + 8) {
+                val x = ballX + ((marker * 100 - game.distance) * 1.1).toFloat()
+                if (x in 0f..size.width && marker > 0) {
+                    drawLine(Color.White.copy(alpha = .7f), Offset(x, ground - 24), Offset(x, ground), strokeWidth = 2f)
+                    drawRect(Mint.copy(alpha = .85f), Offset(x, ground - 24), Size(22f, 12f))
+                }
+            }
         }
         game.obstacles.forEach { obstacle ->
             val x = ballX + ((obstacle.at - game.distance) * .55).toFloat()
@@ -277,6 +324,9 @@ private fun nodePosition(node: ResearchNode): Offset {
     var selected by remember { mutableStateOf<ResearchNode?>(null) }
     var zoom by remember { mutableFloatStateOf(.78f) }
     var pan by remember { mutableStateOf(Offset.Zero) }
+    val transition = rememberInfiniteTransition(label = "affordable discoveries")
+    val pulse by transition.animateFloat(initialValue = .22f, targetValue = .62f,
+        animationSpec = infiniteRepeatable(animation = tween(1000, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse), label = "ready glow")
     val colors = listOf(Color(0xffff9f72), Color(0xff88c7ff), Color(0xffe7b6ff), Color(0xff96f1c2),
         Color(0xffffdf69), Color(0xffa8c5ff), Color(0xffee90a0), Color(0xffc7b2ff))
     Column(Modifier.fillMaxSize()) {
@@ -321,6 +371,10 @@ private fun nodePosition(node: ResearchNode): Offset {
                     val pos = center + nodePosition(node) * zoom
                     val owned = game.owns(node); val available = game.unlocked(node)
                     val color = colors[node.branch.ordinal]
+                    if (!owned && available && game.cash >= node.cost) {
+                        drawCircle(color.copy(alpha = pulse * .35f), 32f * zoom, pos)
+                        drawCircle(color.copy(alpha = pulse), 25f * zoom, pos, style = Stroke(width = 2f))
+                    }
                     drawCircle(if (owned) color else Color(0xff172238), if (node == selected) 23f * zoom else 18f * zoom, pos)
                     drawCircle(if (owned || available) color else Color.White.copy(alpha = .25f), 18f * zoom, pos, style = Stroke(width = 2.5f))
                 }
@@ -408,7 +462,9 @@ private fun nodePosition(node: ResearchNode): Offset {
             val owned = game.ownsGolfer(id)
             CardBox {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Person, null, Modifier.size(44.dp), tint = player.look)
+                    Canvas(Modifier.size(width = 62.dp, height = 76.dp)) {
+                        drawGolferSprite(size.width / 2, size.height - 3f, id, player.look, .85f)
+                    }
                     Spacer(Modifier.width(10.dp))
                     Column {
                         Text(player.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
@@ -445,9 +501,31 @@ private fun nodePosition(node: ResearchNode): Offset {
             Button(onClick = { confirm = true }, enabled = game.ascendAvailable, modifier = Modifier.fillMaxWidth()) { Text("ASCEND AND RESET RUN") }
         }
         Spacer(Modifier.height(14.dp))
-        Text("PERMANENT RELIC APPAREL  •  ${game.relicBank} TO SPEND", color = Mint, fontWeight = FontWeight.Black)
+        Text("RELIC COLLECTION  •  ${game.relicBank} TO SPEND", color = Mint, fontWeight = FontWeight.Black)
         Spacer(Modifier.height(8.dp))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("GOLF BALLS", color = Color.White, fontWeight = FontWeight.Black)
+            game.balls.forEachIndexed { index, ball ->
+                CardBox {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Canvas(Modifier.size(42.dp)) {
+                            drawCircle(ball.tint, size.minDimension * .4f)
+                            drawCircle(ball.stripe, size.minDimension * .4f, style = Stroke(width = 3f))
+                            drawLine(ball.stripe, Offset(size.width * .2f, size.height * .7f), Offset(size.width * .8f, size.height * .3f), strokeWidth = 3f)
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Column { Text(ball.name, color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("${"%.2f".format(ball.power)}× launch • ${ball.description}", color = Mint, fontSize = 11.sp) }
+                    }
+                    if (index == game.selectedBall) Text("IN PLAY", color = Mint, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                    else if (game.ownsBall(index)) Button(onClick = { game.equipBall(index) }, modifier = Modifier.fillMaxWidth()) { Text("PLAY THIS BALL") }
+                    else Button(onClick = { game.buyBall(index) }, enabled = index == game.nextBallUnlock && game.relicBank >= ball.relicCost, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (index == game.nextBallUnlock) "BUY FOR ${ball.relicCost} RELICS" else "UNLOCK PREVIOUS BALL FIRST")
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text("PERMANENT APPAREL", color = Color.White, fontWeight = FontWeight.Black)
             game.apparel.forEach { item ->
                 CardBox {
                     Text("${item.icon}  ${item.name}", color = Color.White, fontWeight = FontWeight.Bold)
@@ -461,7 +539,7 @@ private fun nodePosition(node: ResearchNode): Offset {
         }
     }
     if (confirm) AlertDialog(onDismissRequest = { confirm = false }, title = { Text("Ascend for +${game.potentialRelics} relics?") },
-        text = { Text("Cash, clubs, research, and planet progress reset. Golfers, apparel, and permanent relics remain.") },
+        text = { Text("Cash, clubs, research, and planet progress reset. Golfers, golf balls, apparel, and permanent relics remain.") },
         confirmButton = { TextButton(onClick = { game.ascend(); confirm = false }) { Text("Ascend") } },
         dismissButton = { TextButton(onClick = { confirm = false }) { Text("Cancel") } })
 }

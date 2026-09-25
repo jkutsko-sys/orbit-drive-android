@@ -12,6 +12,8 @@ import kotlin.math.*
 internal data class Club(val name: String, val cost: Double, val swing: Double, val loft: Double, val smash: Double)
 internal data class Golfer(val name: String, val cost: Double, val power: Double, val cashBonus: Double, val look: Color, val description: String)
 internal data class Apparel(val id: String, val name: String, val price: Int, val bonus: Double, val icon: String, val description: String)
+internal data class BallRelic(val name: String, val relicCost: Int, val power: Double, val tint: Color,
+    val stripe: Color, val mark: String, val description: String)
 internal data class Obstacle(val name: String, val at: Double, val height: Double, val speedLoss: Double)
 internal data class Planet(val name: String, val distance: Double, val hp: Double, val color: Color)
 internal enum class Tech(val title: String, val description: String, val baseCost: Double, val max: Int) {
@@ -91,10 +93,11 @@ internal class GameEngine(context: Context) {
         Golfer("Rob Does Shorts", 2500.0, 1.04, 1.05, Color(0xffffae67), "A fun first upgrade with a small cash bonus"),
         Golfer("Brandt Horvett", 15000.0, 1.09, 1.07, Color(0xff54bdf2), "Smooth tempo and a painter's touch"),
         Golfer("Tig Wedge", 120000.0, 1.15, 1.11, Color(0xffc8f28a), "Creative shotmaker with a loyal following"),
-        Golfer("Ricky Foreway", 800000.0, 1.23, 1.14, Color(0xffffd064), "Bright gear, brighter launch monitor"),
-        Golfer("Rice DeChambrix", 5000000.0, 1.36, 1.18, Color(0xffed80fa), "A physics obsessive chasing raw speed"),
-        Golfer("Nelly Birdie", 30000000.0, 1.43, 1.24, Color(0xffff8dae), "Effortless swing that bends the sky"),
-        Golfer("Roary McFairway", 180000000.0, 1.58, 1.31, Color(0xffa2b0ff), "An elite all-around champion for deep space")
+        Golfer("Cappy Gilmore", 430000.0, 1.20, 1.13, Color(0xffb8875b), "A capybara with an unshakable putting face"),
+        Golfer("Ricky Foreway", 1200000.0, 1.25, 1.16, Color(0xffffd064), "Bright gear, brighter launch monitor"),
+        Golfer("Rice DeChambrix", 6500000.0, 1.36, 1.18, Color(0xffed80fa), "A physics obsessive chasing raw speed"),
+        Golfer("Nelly Birdie", 35000000.0, 1.43, 1.24, Color(0xffff8dae), "Effortless swing that bends the sky"),
+        Golfer("Roary McFairway", 200000000.0, 1.58, 1.31, Color(0xffa2b0ff), "An elite all-around champion for deep space")
     )
     val apparel = listOf(
         Apparel("tee", "Martini Tee", 1, 0.04, "♧", "+4% launch power"),
@@ -103,6 +106,14 @@ internal class GameEngine(context: Context) {
         Apparel("shirt", "Fairway Famous Polo", 4, 0.16, "◇", "+16% launch power"),
         Apparel("shoes", "Moonwalk Spikes", 6, 0.22, "☆", "+22% launch power"),
         Apparel("visor", "Cosmic Caddie Visor", 9, 0.32, "◈", "+32% launch power")
+    )
+    val balls = listOf(
+        BallRelic("Doodle Noodle", 0, 1.0, Color(0xfff5ebbc), Color(0xffb45e45), "N", "A squishy range-ball original"),
+        BallRelic("Birdie Biscuit", 2, 1.06, Color(0xffffe9ab), Color(0xffff906b), "B", "A little extra pop"),
+        BallRelic("Call-a-Wayward", 4, 1.13, Color(0xfff4f9ff), Color(0xff72b6ff), "C", "Carries through the clouds"),
+        BallRelic("Tour V-Won", 7, 1.22, Color(0xfff5f5f5), Color(0xffee6363), "V", "A serious tour-grade sphere"),
+        BallRelic("Pro V-Wonder", 12, 1.34, Color(0xffffffff), Color(0xfff3a43b), "P", "The premium ball for interplanetary drives"),
+        BallRelic("Cosmic V-One", 19, 1.48, Color(0xffdbeaff), Color(0xffa66aff), "✦", "The final evolution of the long drive")
     )
     val obstacles = listOf(
         Obstacle("bunker rock", 115.0, 4.0, 0.18),
@@ -124,6 +135,8 @@ internal class GameEngine(context: Context) {
     var ascensions by mutableStateOf(0); private set
     var relicBank by mutableStateOf(0); private set
     var selectedGolfer by mutableStateOf(0); private set
+    var selectedBall by mutableStateOf(0); private set
+    private val ownedBalls = mutableSetOf(0)
     private val ownedGolfers = mutableSetOf(0)
     private val ownedApparel = mutableSetOf<String>()
     private val clubLevels = MutableList(clubs.size) { 0 }
@@ -148,6 +161,9 @@ internal class GameEngine(context: Context) {
     init { restore() }
     val club get() = clubs[ownedClub]
     val golfer get() = golfers[selectedGolfer]
+    val ball get() = balls[selectedBall]
+    fun ownsBall(id: Int) = id in ownedBalls
+    val nextBallUnlock get() = (ownedBalls.maxOrNull() ?: 0) + 1
     fun ownsGolfer(id: Int) = id in ownedGolfers
     val nextGolferUnlock get() = (ownedGolfers.maxOrNull() ?: 0) + 1
     fun ownsApparel(id: String) = id in ownedApparel
@@ -181,7 +197,7 @@ internal class GameEngine(context: Context) {
         bounceCount = 0; combo = 0; earned = 0.0; planeUsed = false
         lightningCharges = if (level(Tech.LIGHTNING) > 0) 1 + (if (nodeEffect(Tech.LIGHTNING, 2)) 1 else 0) + (if (nodeEffect(Tech.LIGHTNING, 5)) 1 else 0) else 0
         planetHP = nextPlanetIndex?.let { (planets[it].hp - damage[it]).coerceAtLeast(0.0) } ?: 0.0
-        val launchSpeed = (club.swing * 1.15.pow(clubLevels[ownedClub]) + level(Tech.POWER) * 11) * club.smash * (0.28 + 0.72 * (if (nodeEffect(Tech.POWER, 1)) max(charge, 0.55) else charge)) * multiplier * golfer.power * apparelPower
+        val launchSpeed = (club.swing * 1.15.pow(clubLevels[ownedClub]) + level(Tech.POWER) * 11) * club.smash * (0.28 + 0.72 * (if (nodeEffect(Tech.POWER, 1)) max(charge, 0.55) else charge)) * multiplier * golfer.power * apparelPower * ball.power
         val angle = Math.toRadians(club.loft + level(Tech.GRAVITY) * 0.4)
         vx = launchSpeed * cos(angle); vy = launchSpeed * sin(angle); speed = launchSpeed
         launches++; save(); message = if (charge > 0.85) "PERFECT STRIKE!" else "Ball away!"
@@ -279,6 +295,14 @@ internal class GameEngine(context: Context) {
         if (id !in ownedGolfers) return
         selectedGolfer = id; save()
     }
+    fun buyBall(id: Int) {
+        if (id !in balls.indices || id != nextBallUnlock || relicBank < balls[id].relicCost) return
+        relicBank -= balls[id].relicCost; ownedBalls.add(id); selectedBall = id; save()
+    }
+    fun equipBall(id: Int) {
+        if (id !in ownedBalls) return
+        selectedBall = id; save()
+    }
     fun buyApparel(id: String) {
         val item = apparel.firstOrNull { it.id == id } ?: return
         if (id in ownedApparel || relicBank < item.price) return
@@ -296,7 +320,8 @@ internal class GameEngine(context: Context) {
         val json = JSONObject().apply {
             put("cash", cash); put("lifetime", lifetimeDistance); put("best", bestDistance); put("launches", launches)
             put("club", ownedClub); put("relics", relics); put("ascensions", ascensions)
-            put("relicBank", relicBank); put("selectedGolfer", selectedGolfer)
+            put("rosterVersion", 2); put("relicBank", relicBank); put("selectedGolfer", selectedGolfer)
+            put("selectedBall", selectedBall); put("ownedBalls", JSONArray(ownedBalls.toList()))
             put("ownedGolfers", JSONArray(ownedGolfers.toList())); put("ownedApparel", JSONArray(ownedApparel.toList()))
             put("clubLevels", JSONArray(clubLevels)); put("nodes", JSONArray(purchased.toList()))
             put("damage", JSONArray(damage)); put("destroyed", JSONArray(destroyed))
@@ -310,8 +335,12 @@ internal class GameEngine(context: Context) {
         ownedClub = json.optInt("club").coerceIn(clubs.indices)
         relics = json.optInt("relics").coerceAtLeast(0); ascensions = json.optInt("ascensions").coerceAtLeast(0)
         relicBank = json.optInt("relicBank", relics).coerceAtLeast(0)
-        json.optJSONArray("ownedGolfers")?.let { list -> repeat(list.length()) { list.optInt(it).takeIf { n -> n in golfers.indices }?.let(ownedGolfers::add) } }
-        selectedGolfer = json.optInt("selectedGolfer").coerceIn(golfers.indices).takeIf { it in ownedGolfers } ?: 0
+        val oldRoster = json.optInt("rosterVersion", 1) < 2
+        fun rosterIndex(index: Int) = if (oldRoster && index >= 4) index + 1 else index
+        json.optJSONArray("ownedGolfers")?.let { list -> repeat(list.length()) { rosterIndex(list.optInt(it)).takeIf { n -> n in golfers.indices }?.let(ownedGolfers::add) } }
+        selectedGolfer = rosterIndex(json.optInt("selectedGolfer")).coerceIn(golfers.indices).takeIf { it in ownedGolfers } ?: 0
+        json.optJSONArray("ownedBalls")?.let { list -> repeat(list.length()) { list.optInt(it).takeIf { n -> n in balls.indices }?.let(ownedBalls::add) } }
+        selectedBall = json.optInt("selectedBall").coerceIn(balls.indices).takeIf { it in ownedBalls } ?: 0
         json.optJSONArray("ownedApparel")?.let { list -> repeat(list.length()) { list.optString(it).takeIf { id -> apparel.any { a -> a.id == id } }?.let(ownedApparel::add) } }
         val levels = json.optJSONArray("clubLevels") ?: JSONArray()
         val nodes = json.optJSONArray("nodes")

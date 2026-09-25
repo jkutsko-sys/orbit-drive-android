@@ -27,3 +27,7 @@ The fresh-install first-swing crash was reproduced in the emulator (`org.json.JS
 The research tree is now one radial canvas centered on the golfer. Drag to pan, pinch or use +/- to zoom, tap a node for its name, prerequisite and price. Golfer roster prices follow their stat bonuses, and golfers must be bought in order. Apparel is permanent and bought with an unspent relic balance. Ground scenery scrolls with distance; four sparse obstacles can reduce speed if hit. The tee shows the selected golfer and club.
 
 This preview uses `com.orbitdrive.game.preview` and a repository-held **test-only** signing key so future preview APKs can update in place. The key is public and must never be used for a store release or sensitive app. The prior test package has a different ID and separate local save.
+
+## Version 0.4
+
+Affordable research nodes pulse gently. Ball relics are permanent sequential unlocks bought with unspent relics; each has a different appearance and launch multiplier. Cappy Gilmore joins the golfer roster as a mid-tier capybara. Vector golfer portraits and tee sprites show the selected golfer, with distinct capybara features. Scenery and meter flags move faster to make ball travel visible.

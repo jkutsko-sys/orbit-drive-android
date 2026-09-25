@@ -26,5 +26,7 @@ class LaunchSmokeTest {
         rule.onNodeWithText("RESEARCH CONSTELLATION").assertExists()
         rule.onNodeWithText("Golfer").performClick()
         rule.onNodeWithText("GOLFER ROSTER").assertExists()
+        rule.onNodeWithText("Ascend").performClick()
+        rule.onNodeWithText("GOLF BALLS").assertExists()
     }
 }
