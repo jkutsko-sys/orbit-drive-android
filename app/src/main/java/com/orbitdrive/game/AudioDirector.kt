@@ -38,8 +38,8 @@ internal class AudioDirector(context: Context) {
     fun cue(name: String) { accent = when (name) { "swing" -> 1; "lightning" -> 2; "planet" -> 3; "plane" -> 4; "purchase" -> 5; "land" -> 6; else -> 0 } }
     fun setMusic(value: Boolean) { musicEnabled = value; prefs.edit().putBoolean("music", value).apply() }
     fun setEffects(value: Boolean) { effectsEnabled = value; prefs.edit().putBoolean("effects", value).apply() }
-    fun setMusicVolume(value: Float) { musicVolume = value; prefs.edit().putFloat("musicVolume", value).apply() }
-    fun setEffectsVolume(value: Float) { effectsVolume = value; prefs.edit().putFloat("effectsVolume", value).apply() }
+    fun adjustMusicVolume(value: Float) { musicVolume = value; prefs.edit().putFloat("musicVolume", value).apply() }
+    fun adjustEffectsVolume(value: Float) { effectsVolume = value; prefs.edit().putFloat("effectsVolume", value).apply() }
     private fun loop() {
         track.play()
         val buffer = ShortArray(1024)

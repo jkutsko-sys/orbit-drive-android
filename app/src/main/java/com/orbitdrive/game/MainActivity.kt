@@ -668,12 +668,12 @@ private fun nodePosition(node: ResearchNode): Offset {
                 Text("Music"); Switch(checked = audio.musicEnabled, onCheckedChange = audio::setMusic)
             }
             Text("Music volume")
-            Slider(value = audio.musicVolume, onValueChange = audio::setMusicVolume)
+            Slider(value = audio.musicVolume, onValueChange = audio::adjustMusicVolume)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Sound effects"); Switch(checked = audio.effectsEnabled, onCheckedChange = audio::setEffects)
             }
             Text("Effects volume")
-            Slider(value = audio.effectsVolume, onValueChange = audio::setEffectsVolume)
+            Slider(value = audio.effectsVolume, onValueChange = audio::adjustEffectsVolume)
             HorizontalDivider()
             Text("Preview voucher", fontWeight = FontWeight.Bold)
             OutlinedTextField(value = code, onValueChange = { code = it }, label = { Text("Voucher code") }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("voucherCode"))
