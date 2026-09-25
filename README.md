@@ -1,6 +1,6 @@
 # Orbit Drive — Android prototype
 
-Native Kotlin/Jetpack Compose companion to the iPhone prototype. Gameplay includes launch timing, flight and bounce simulation, six research paths, five clubs, planet HP and persistent damage, and ascension. Saves remain on device.
+Native Kotlin/Jetpack Compose companion to the iPhone prototype. Gameplay includes launch timing, flight and bounce simulation, eight branching research paths with 64 named discoveries, 15 clubs, planet HP and persistent damage, and ascension. Saves remain on device.
 
 ## Run
 
@@ -17,3 +17,7 @@ The first cloud build is the actual compile check. If it fails, keep the workflo
 ## If a swing still crashes
 
 Restart the app. The next launch displays the captured exception; take a screenshot and send it to the developer. The swing handler was replaced with a lifecycle-safe press gesture in this build, but only a physical-device test can confirm the original failure is gone.
+
+## Version 0.2
+
+The fresh-install first-swing crash was reproduced in the emulator (`org.json.JSONException: Forbidden numeric value: NaN`) and fixed by giving missing save values finite defaults. The cloud workflow now runs a launch-and-swing emulator smoke test before publishing its test APK.

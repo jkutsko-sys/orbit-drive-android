@@ -221,37 +221,66 @@ class MainActivity : ComponentActivity() {
                         label = { Text("${tech.title} ${game.level(tech)}/8") })
                 }
         }
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+        val nodes = ResearchTree.nodes(selected)
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             item {
                 Text(selected.description.uppercase(), color = Mint, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                Text("Buy connected discoveries with cash. Forks join at tier six.", color = Muted, fontSize = 12.sp)
+                Text("Buy connected discoveries with cash. Both forks join at tier six.", color = Muted, fontSize = 12.sp)
             }
-            items(ResearchTree.nodes(selected)) { node ->
-                val owned = game.owns(node)
-                val unlocked = game.unlocked(node)
-                val parentNames = node.requires.mapNotNull { id -> ResearchTree.all.find { it.id == id }?.name }
-                CardBox {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(if (owned) "◆" else if (unlocked) "◇" else "○", color = if (owned) Mint else Muted, fontSize = 24.sp)
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(node.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                            Text(node.effect, color = Mint, fontSize = 12.sp)
-                        }
-                        Text("T${node.tier + 1}", color = Muted, fontSize = 11.sp)
-                    }
-                    if (parentNames.isNotEmpty()) {
-                        Spacer(Modifier.height(7.dp))
-                        Text("↳ ${parentNames.joinToString(" + ")}", color = Muted, fontSize = 11.sp)
-                    }
-                    if (!owned) {
-                        Spacer(Modifier.height(9.dp))
-                        Button(onClick = { game.buyNode(node) }, enabled = unlocked && game.cash >= node.cost,
-                            modifier = Modifier.fillMaxWidth()) {
-                            Text(if (unlocked) "DISCOVER  •  $${game.format(node.cost)}" else "LOCKED • REQUIRES CONNECTED NODE")
-                        }
-                    }
+            item { ResearchNodeCard(game, nodes[0], Modifier.fillMaxWidth()) }
+            item { TreeConnector(fork = true) }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                    ResearchNodeCard(game, nodes[1], Modifier.weight(1f))
+                    ResearchNodeCard(game, nodes[2], Modifier.weight(1f))
                 }
+            }
+            item { TreeConnector(fork = false) }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                    ResearchNodeCard(game, nodes[3], Modifier.weight(1f))
+                    ResearchNodeCard(game, nodes[4], Modifier.weight(1f))
+                }
+            }
+            item { TreeConnector(fork = false) }
+            items(nodes.drop(5)) { node ->
+                ResearchNodeCard(game, node, Modifier.fillMaxWidth())
+                if (node.tier < 7) TreeConnector(fork = false)
+            }
+        }
+    }
+}
+
+@Composable private fun TreeConnector(fork: Boolean) {
+    Canvas(Modifier.fillMaxWidth().height(23.dp)) {
+        val c = size.width / 2
+        if (fork) {
+            drawLine(Mint.copy(alpha = .55f), Offset(c, 0f), Offset(size.width * .25f, size.height), strokeWidth = 3f)
+            drawLine(Mint.copy(alpha = .55f), Offset(c, 0f), Offset(size.width * .75f, size.height), strokeWidth = 3f)
+        } else {
+            drawLine(Mint.copy(alpha = .4f), Offset(size.width * .25f, 0f), Offset(c, size.height), strokeWidth = 2f)
+            drawLine(Mint.copy(alpha = .4f), Offset(size.width * .75f, 0f), Offset(c, size.height), strokeWidth = 2f)
+        }
+    }
+}
+
+@Composable private fun ResearchNodeCard(game: GameEngine, node: ResearchNode, modifier: Modifier) {
+    val owned = game.owns(node)
+    val unlocked = game.unlocked(node)
+    Column(modifier.background(Card, RoundedCornerShape(15.dp)).padding(12.dp)) {
+        Text(if (owned) "◆ DISCOVERED" else if (unlocked) "◇ AVAILABLE" else "○ LOCKED", color = if (owned) Mint else Muted,
+            fontWeight = FontWeight.Black, fontSize = 10.sp)
+        Text(node.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 2)
+        Text(node.effect, color = Mint, fontSize = 11.sp, minLines = 2)
+        if (node.requires.isNotEmpty()) {
+            val parents = node.requires.mapNotNull { id -> ResearchTree.all.find { it.id == id }?.name }
+            Text("Needs: ${parents.joinToString(" + ")}", color = Muted, fontSize = 10.sp, maxLines = 2)
+        }
+        if (!owned) {
+            Spacer(Modifier.height(7.dp))
+            Button(onClick = { game.buyNode(node) }, enabled = unlocked && game.cash >= node.cost,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp), modifier = Modifier.fillMaxWidth()) {
+                Text(if (unlocked) "$${game.format(node.cost)}" else "LOCKED", fontSize = 11.sp)
             }
         }
     }
