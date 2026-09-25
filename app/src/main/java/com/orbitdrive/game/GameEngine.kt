@@ -247,8 +247,8 @@ internal class GameEngine(context: Context) {
     }
     private fun restore() {
         val json = runCatching { JSONObject(prefs.getString("save", "{}") ?: "{}") }.getOrDefault(JSONObject())
-        cash = json.optDouble("cash").coerceAtLeast(0.0); lifetimeDistance = json.optDouble("lifetime").coerceAtLeast(0.0)
-        bestDistance = json.optDouble("best").coerceAtLeast(0.0); launches = json.optInt("launches").coerceAtLeast(0)
+        cash = json.optDouble("cash", 0.0).takeIf(Double::isFinite)?.coerceAtLeast(0.0) ?: 0.0; lifetimeDistance = json.optDouble("lifetime", 0.0).takeIf(Double::isFinite)?.coerceAtLeast(0.0) ?: 0.0
+        bestDistance = json.optDouble("best", 0.0).takeIf(Double::isFinite)?.coerceAtLeast(0.0) ?: 0.0; launches = json.optInt("launches").coerceAtLeast(0)
         ownedClub = json.optInt("club").coerceIn(clubs.indices)
         relics = json.optInt("relics").coerceAtLeast(0); ascensions = json.optInt("ascensions").coerceAtLeast(0)
         val levels = json.optJSONArray("clubLevels") ?: JSONArray()
@@ -264,7 +264,7 @@ internal class GameEngine(context: Context) {
         val dead = json.optJSONArray("destroyed") ?: JSONArray()
         clubLevels.indices.forEach { clubLevels[it] = levels.optInt(it).coerceIn(0, 30) }
 
-        damage.indices.forEach { damage[it] = hits.optDouble(it).coerceIn(0.0, planets[it].hp); destroyed[it] = dead.optBoolean(it) }
+        damage.indices.forEach { damage[it] = (hits.optDouble(it, 0.0).takeIf(Double::isFinite) ?: 0.0).coerceIn(0.0, planets[it].hp); destroyed[it] = dead.optBoolean(it) }
         revision++
     }
 }
