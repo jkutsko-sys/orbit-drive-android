@@ -24,6 +24,7 @@ class LaunchSmokeTest {
         }
         rule.waitForIdle()
         rule.onNodeWithText("ORBIT DRIVE").assertExists()
+        rule.onNodeWithTag("swingPower").assertExists()
     }
 
     @Test fun treeAndGolferRosterOpen() {
@@ -48,10 +49,10 @@ class LaunchSmokeTest {
             prefs.edit().remove("save").commit()
             val engine = GameEngine(context)
             assertEquals("Invalid voucher code", engine.redeemVoucher("wrong"))
-            assertEquals("$10,000 added for testing", engine.redeemVoucher("admin"))
-            assertEquals(10_000.0, engine.cash, 0.01)
-            assertEquals("$10,000 added for testing", GameEngine(context).redeemVoucher("ADMIN"))
-            assertEquals(20_000.0, GameEngine(context).cash, 0.01)
+            assertEquals("$100,000 added for testing", engine.redeemVoucher("admin"))
+            assertEquals(100_000.0, engine.cash, 0.01)
+            assertEquals("$100,000 added for testing", GameEngine(context).redeemVoucher("ADMIN"))
+            assertEquals(200_000.0, GameEngine(context).cash, 0.01)
         } finally {
             if (prior == null) prefs.edit().remove("save").commit()
             else prefs.edit().putString("save", prior).commit()
@@ -147,7 +148,11 @@ class LaunchSmokeTest {
             val nodes = JSONArray((0..15).map { "LIGHTNING-$it" })
             prefs.edit().putString("save", JSONObject().put("nodes", nodes).toString()).commit()
             val engine = GameEngine(context)
-            engine.startCharge(); engine.tick(.05); engine.release(); engine.lightning()
+            engine.startCharge(); engine.tick(.05)
+            val projectedPower = engine.projectedSwingPower
+            engine.release()
+            assertEquals(projectedPower, engine.speed, 0.0001)
+            engine.lightning()
             assertTrue(engine.electrifiedFor > 0.0)
             assertTrue(engine.lightningFlashFor > 0.0)
         } finally {

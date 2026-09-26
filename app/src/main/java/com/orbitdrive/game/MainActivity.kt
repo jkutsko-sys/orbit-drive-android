@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -153,7 +154,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
         }
-        Box(Modifier.weight(1f).fillMaxWidth().background(Card, RoundedCornerShape(17.dp))) {
+        Box(Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(17.dp)).background(Card)) {
             RangeArt(game, Modifier.fillMaxSize())
             if (game.electrifiedFor > 0) Text("⚡ ELECTRIFIED  ${"%.1f".format(game.electrifiedFor)}s",
                 Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp).background(Color(0xff12394d), RoundedCornerShape(12.dp)).padding(8.dp),
@@ -202,7 +203,10 @@ class MainActivity : ComponentActivity() {
                         })
                     }, contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        LinearProgressIndicator(progress = { game.charge.toFloat() }, modifier = Modifier.width(130.dp).height(5.dp), color = Color(0xfffeac5b), trackColor = Night.copy(alpha = .2f))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            LinearProgressIndicator(progress = { game.charge.toFloat() }, modifier = Modifier.width(78.dp).height(5.dp), color = Color(0xfffeac5b), trackColor = Night.copy(alpha = .2f))
+                            Text("PWR ${game.format(game.projectedSwingPower)}", color = Night, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.testTag("swingPower"))
+                        }
                         Text("HOLD & RELEASE", color = Night, fontSize = 9.sp, fontWeight = FontWeight.Black)
                         Text("LAUNCH", color = Night, fontSize = 17.sp, fontWeight = FontWeight.Black)
                     }

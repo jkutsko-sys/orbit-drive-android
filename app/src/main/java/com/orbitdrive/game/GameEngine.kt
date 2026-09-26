@@ -87,8 +87,8 @@ internal class GameEngine(context: Context) {
     fun redeemVoucher(code: String): String {
         if (!previewBuild) return "Vouchers are unavailable in this build"
         if (!code.trim().equals("ADMIN", ignoreCase = true)) return "Invalid voucher code"
-        cash += 10_000.0; save(); cue("purchase")
-        return "$10,000 added for testing"
+        cash += 100_000.0; save(); cue("purchase")
+        return "$100,000 added for testing"
     }
     val clubs = listOf(
         Club("Bent Starter", 0.0, 35.0, 31.0, 1.12),
@@ -266,6 +266,15 @@ internal class GameEngine(context: Context) {
     fun isDestroyed(id: Int) = destroyed[id]
 
     fun clubUpgradeCost() = (40 + club.cost * 0.28) * 1.6.pow(clubLevels[equippedClub])
+    val projectedSwingPower get() = launchPowerFor(if (phase == Phase.CHARGING) charge else 1.0)
+    private fun launchPowerFor(strike: Double): Double {
+        val perfect = strike > (if (hasClubPerk(2)) .76 else .85)
+        val strikeBonus = if (perfect && nodeEffect(Tech.POWER, 23)) 1.50 else if (perfect && nodeEffect(Tech.POWER, 7)) 1.12 else 1.0
+        return (club.swing * 1.15.pow(clubLevels[equippedClub]) + level(Tech.POWER) * 11) * club.smash *
+            (0.28 + 0.72 * (if (nodeEffect(Tech.POWER, 1)) max(strike, 0.55) else strike)) *
+            multiplier * golfer.power * apparelPower * ball.power * clubPowerBonus * strikeBonus *
+            (if (twinLaunch && equippedClub != clubs.lastIndex) .82 else 1.0)
+    }
     fun format(value: Double): String = when {
         value >= 1e9 -> "%.2fB".format(value / 1e9)
         value >= 1e6 -> "%.2fM".format(value / 1e6)
@@ -286,8 +295,7 @@ internal class GameEngine(context: Context) {
             (if (nodeEffect(Tech.LIGHTNING, 2)) 1 else 0) + (if (nodeEffect(Tech.LIGHTNING, 5)) 1 else 0) +
             (if (hasClubPerk(7)) 1 else 0) else 0
         val perfect = charge > (if (hasClubPerk(2)) .76 else .85)
-        val strikeBonus = if (perfect && nodeEffect(Tech.POWER, 23)) 1.50 else if (perfect && nodeEffect(Tech.POWER, 7)) 1.12 else 1.0
-        val launchSpeed = (club.swing * 1.15.pow(clubLevels[equippedClub]) + level(Tech.POWER) * 11) * club.smash * (0.28 + 0.72 * (if (nodeEffect(Tech.POWER, 1)) max(charge, 0.55) else charge)) * multiplier * golfer.power * apparelPower * ball.power * clubPowerBonus * strikeBonus * (if (twinLaunch && equippedClub != clubs.lastIndex) .82 else 1.0)
+        val launchSpeed = launchPowerFor(charge)
         val angle = Math.toRadians(club.loft + level(Tech.GRAVITY) * 0.4)
         vx = launchSpeed * cos(angle); vy = launchSpeed * sin(angle); speed = launchSpeed
         launches++; save(); cue("swing"); message = if (perfect) "PERFECT STRIKE!" else "Ball away!"

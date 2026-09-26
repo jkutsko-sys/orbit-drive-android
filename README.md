@@ -53,3 +53,7 @@ Planets are distance checkpoints rather than health encounters: crossing one giv
 ## Preview 0.9
 
 The range camera is 18% closer to the world around the ball. Golfer sprites and roster portraits are larger with clearer clothing and facial details. Rocks, sheds and towers have larger silhouettes and added facets, roofs, doors and windows. Planets now have shaded surfaces, unique crater/band/ring details and bigger approach sprites; the artwork remains resolution-independent vector drawing. Physics, collision positions and rewards are unchanged.
+
+## Preview 0.10
+
+The enlarged range scene is clipped to its card, keeping the distance, speed and altitude HUD visible. The launch charge tracker shows projected total swing power in m/s, calculated from the same launch formula used when the ball is struck. In debuggable previews, each `ADMIN` voucher redemption grants $100,000 and can be used again for testing.
