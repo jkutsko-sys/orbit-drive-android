@@ -49,3 +49,7 @@ The Settings gear sits beside the cash total on the Range screen. An instrumente
 ## Preview 0.8
 
 Planets are distance checkpoints rather than health encounters: crossing one gives a bounty on each shot, while the first clear plays a longer cinematic and remains recorded across ascensions. The former Orbital Science branch is now Milestone Mapping; existing node IDs and purchases migrate intact. Flightpath aircraft progress from paper glider through propeller aircraft, jets, stealth bomber, rocket, and starship. Club purchase prices are spread farther apart and levels 10, 20, and 30 permanently grant a 20% power step for that club, even when its levels reset at ascension. Base shot income and relic power progression are rebalanced; ten randomly discoverable relic powers can be ranked up with increasingly expensive relic costs, including a bonus to relics earned on ascension. The preview `ADMIN` voucher can be redeemed repeatedly for $10,000 each time.
+
+## Preview 0.9
+
+The range camera is 18% closer to the world around the ball. Golfer sprites and roster portraits are larger with clearer clothing and facial details. Rocks, sheds and towers have larger silhouettes and added facets, roofs, doors and windows. Planets now have shaded surfaces, unique crater/band/ring details and bigger approach sprites; the artwork remains resolution-independent vector drawing. Physics, collision positions and rewards are unchanged.

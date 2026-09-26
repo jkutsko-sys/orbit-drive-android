@@ -35,6 +35,7 @@ import kotlin.math.hypot
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -218,7 +219,11 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
     drawCircle(Color.Black.copy(alpha = .18f), 15f * scale, p(0f, -1f))
     drawLine(dark, p(-5f, -22f), p(-11f, -2f), strokeWidth = 6f * scale)
     drawLine(dark, p(5f, -22f), p(12f, -2f), strokeWidth = 6f * scale)
+    drawLine(Color(0xffe8f2ff), p(-15f, -2f), p(-7f, -2f), strokeWidth = 4f * scale)
+    drawLine(Color(0xffe8f2ff), p(8f, -2f), p(16f, -2f), strokeWidth = 4f * scale)
     drawRoundRect(shirt, topLeft = p(-11f, -48f), size = Size(23f * scale, 29f * scale), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f * scale))
+    drawLine(Color.White.copy(alpha = .5f), p(-8f, -40f), p(-8f, -24f), strokeWidth = 2f * scale)
+    drawCircle(Color.White.copy(alpha = .8f), 2f * scale, p(7f, -40f))
     drawLine(skin, p(9f, -43f), p(17f, -34f), strokeWidth = 6f * scale)
     drawLine(skin, p(17f, -34f), p(13f, -31f), strokeWidth = 5f * scale)
     if (id == 4) {
@@ -228,16 +233,47 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
         drawRoundRect(Color(0xffd1a174), topLeft = p(1f, -57f), size = Size(14f * scale, 9f * scale), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * scale))
         drawCircle(dark, 1.5f * scale, p(-3f, -63f)); drawCircle(dark, 1.5f * scale, p(8f, -63f))
         drawCircle(dark, 1.5f * scale, p(11f, -54f))
+        drawCircle(Color(0xfff3dcc0), 2f * scale, p(13f, -57f))
+        drawLine(dark, p(6f, -53f), p(12f, -52f), strokeWidth = 1.5f * scale)
     } else {
         drawCircle(skin, 11f * scale, p(0f, -60f))
         drawRoundRect(dark, topLeft = p(-12f, -72f), size = Size(24f * scale, 7f * scale), cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f * scale))
         drawLine(dark, p(3f, -68f), p(18f, -68f), strokeWidth = 3f * scale)
         drawCircle(dark, 1.3f * scale, p(-4f, -61f)); drawCircle(dark, 1.3f * scale, p(5f, -61f))
+        drawLine(Color(0xff9c6455), p(-2f, -55f), p(5f, -55f), strokeWidth = 1.2f * scale)
+        drawLine(Color.White.copy(alpha = .8f), p(-10f, -71f), p(7f, -71f), strokeWidth = 1.2f * scale)
     }
+}
+
+private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, color: Color, alpha: Float = 1f) {
+    drawCircle(Color.White.copy(alpha = .08f * alpha), radius * 1.32f, center)
+    drawCircle(Brush.radialGradient(listOf(Color.White.copy(alpha = .82f * alpha), color.copy(alpha = alpha),
+        Color(0xff172743).copy(alpha = alpha)), center = Offset(center.x - radius * .3f, center.y - radius * .3f), radius = radius * 1.7f), radius, center)
+    when (id) {
+        0 -> repeat(4) { i ->
+            val dx = listOf(-.38f, .4f, -.12f, .15f)[i] * radius
+            val dy = listOf(-.23f, -.18f, .38f, .12f)[i] * radius
+            drawCircle(Color(0xff8994a6).copy(alpha = .46f * alpha), radius * (.08f + i * .015f), Offset(center.x + dx, center.y + dy))
+        }
+        1 -> {
+            drawLine(Color(0xffa94a3a).copy(alpha = .5f * alpha), Offset(center.x - radius * .6f, center.y + radius * .1f), Offset(center.x + radius * .5f, center.y + radius * .3f), strokeWidth = radius * .13f)
+            drawCircle(Color(0xffffd3aa).copy(alpha = .7f * alpha), radius * .12f, Offset(center.x + radius * .37f, center.y - radius * .42f))
+        }
+        2, 4 -> repeat(3) { i ->
+            val y = center.y + (i - 1) * radius * .35f
+            drawLine(Color.White.copy(alpha = .23f * alpha), Offset(center.x - radius * .72f, y), Offset(center.x + radius * .72f, y + radius * .06f), strokeWidth = radius * .11f)
+        }
+        3 -> drawOval(Color(0xffffebba).copy(alpha = .75f * alpha), Offset(center.x - radius * 1.42f, center.y - radius * .33f),
+            Size(radius * 2.84f, radius * .66f), style = Stroke(width = radius * .13f))
+        else -> repeat(5) { i -> drawCircle(Color.White.copy(alpha = (.1f + i * .06f) * alpha), radius * .06f,
+            Offset(center.x + (i - 2) * radius * .24f, center.y + (i % 2 - 1) * radius * .34f)) }
+    }
+    drawCircle(Color.White.copy(alpha = .65f * alpha), radius, center, style = Stroke(width = 1.5f))
 }
 
 @Composable private fun RangeArt(game: GameEngine, modifier: Modifier) {
     Canvas(modifier) {
+        withTransform({ scale(1.18f, 1.18f, pivot = Offset(size.width * .30f, size.height * .50f)) }) {
         val space = game.distance > 7000
         drawRect(brush = Brush.verticalGradient(if (space) listOf(Color(0xff08051c), Color(0xff201038)) else listOf(Color(0xff194d79), Color(0xff66b7bc))))
         repeat(42) { i ->
@@ -362,7 +398,7 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
         }
         if (game.phase == Phase.READY || game.phase == Phase.CHARGING) {
             val gx = ballX - 38f
-            drawGolferSprite(gx, ground, game.selectedGolfer, game.golfer.look, 1f)
+            drawGolferSprite(gx, ground, game.selectedGolfer, game.golfer.look, 1.12f)
             val clubColor = if (game.equippedClub == game.clubs.lastIndex) Color(0xffe7a6ff)
                 else listOf(Color.Gray, Color(0xffc5a77e), Color.Cyan, Color(0xffb4d0d5), Color(0xffffc36a), Color(0xfff07d74), Color.Magenta)[game.equippedClub % 7]
             val sweep = if (game.phase == Phase.CHARGING) game.charge.toFloat() * 42f else 0f
@@ -399,11 +435,39 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
         }
         game.obstacles.forEachIndexed { obstacleIndex, obstacle ->
             val x = ballX + ((obstacle.at - game.distance) * .55).toFloat()
-            if (x in -30f..(size.width + 30f) && game.distance < 7000 && !game.obstacleBroken(obstacleIndex)) {
-                val h = (obstacle.height * 3).toFloat()
-                if (obstacle.name.contains("rock")) drawCircle(Color(0xff727b84), 13f, Offset(x, ground - 5))
-                else { drawRect(Color(0xff40566a), Offset(x - 12, ground - h), Size(24f, h));
-                    drawRect(Color(0xff9cabc2), Offset(x - 15, ground - h), Size(30f, 5f)) }
+            if (x in -65f..(size.width + 65f) && game.distance < 17000 && !game.obstacleBroken(obstacleIndex)) {
+                val h = max(34f, (obstacle.height * 3.4).toFloat())
+                when {
+                    obstacle.name.contains("rock") -> {
+                        val outline = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(x - 21, ground); lineTo(x - 16, ground - 16); lineTo(x - 4, ground - 26)
+                            lineTo(x + 11, ground - 22); lineTo(x + 24, ground - 5); lineTo(x + 20, ground); close()
+                        }
+                        drawPath(outline, Color(0xff718294))
+                        drawLine(Color(0xffb9c7c9), Offset(x - 16, ground - 16), Offset(x - 4, ground - 26), strokeWidth = 2.5f)
+                        drawLine(Color(0xff44556b), Offset(x - 4, ground - 26), Offset(x + 1, ground - 8), strokeWidth = 2f)
+                    }
+                    obstacle.name.contains("shed") -> {
+                        drawRect(Color(0xff684b41), Offset(x - 23, ground - h), Size(46f, h))
+                        val roof = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(x - 30, ground - h); lineTo(x, ground - h - 22); lineTo(x + 30, ground - h); close()
+                        }
+                        drawPath(roof, Color(0xffb6c9ce))
+                        drawRect(Color(0xffa2d5de), Offset(x - 16, ground - h + 9), Size(11f, 12f))
+                        drawRect(Color(0xffa2d5de), Offset(x + 7, ground - h + 9), Size(11f, 12f))
+                        drawRect(Color(0xff342f39), Offset(x - 6, ground - 19), Size(13f, 19f))
+                        drawLine(Color(0xffddb380), Offset(x + 7, ground - 19), Offset(x + 7, ground), strokeWidth = 2f)
+                    }
+                    else -> {
+                        drawRect(Color(0xff334a61), Offset(x - 19, ground - h), Size(38f, h))
+                        drawRect(Color(0xff9badbb), Offset(x - 25, ground - h), Size(50f, 8f))
+                        repeat(3) { row -> repeat(2) { col ->
+                            drawRect(Color(0xff9fe2f0), Offset(x - 13 + col * 19f, ground - h + 14 + row * 19f), Size(10f, 10f))
+                        } }
+                        drawLine(Color(0xffffc87a), Offset(x, ground - h - 15), Offset(x, ground - h), strokeWidth = 3f)
+                        drawCircle(Color(0xffffd58e), 5f, Offset(x, ground - h - 15))
+                    }
+                }
             }
         }
         game.nextPlanet?.let { planet ->
@@ -411,8 +475,8 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
                 val progress = 1 - max(0.0, (planet.distance - game.distance) / max(2500.0, planet.distance * .15))
                 val x = size.width * (.92f - .48f * progress.toFloat())
                 val center = Offset(x, ground * .42f)
-                val radius = if (planet.distance > 100000) 48f else 30f
-                drawCircle(planet.color, radius, center)
+                val radius = if (planet.distance > 100000) 55f else 41f
+                drawPlanetSprite(game.planets.indexOf(planet), center, radius, planet.color)
             }
         }
         game.planetImpactID?.let { id ->
@@ -422,7 +486,8 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
                 val progress = (1 - game.planetEffectFor / (if (first) 3.0 else 1.8)).toFloat().coerceIn(0f, 1f)
                 val center = Offset(size.width * .59f, ground * .42f)
                 val radius = (if (first) 62f else 45f) + id * 3f
-                drawCircle(planet.color.copy(alpha = if (game.planetShattered && progress > .48f) (1 - progress) * 1.8f else 1f), radius, center)
+                drawPlanetSprite(id, center, radius, planet.color,
+                    if (game.planetShattered && progress > .48f) (1 - progress) * 1.8f else 1f)
                 // Ball rushes into the core, then radial fractures and fragments fly out.
                 if (progress < .46f) {
                     val incoming = Offset(ballX + (center.x - ballX) * progress / .46f, ballY + (center.y - ballY) * progress / .46f)
@@ -450,6 +515,7 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
         }
 
     }
+}
 }
 
 private fun nodePosition(node: ResearchNode): Offset {
@@ -572,6 +638,7 @@ private fun nodePosition(node: ResearchNode): Offset {
                 }
             }
         }
+        }
     }
 }
 
@@ -620,8 +687,8 @@ private fun nodePosition(node: ResearchNode): Offset {
             val owned = game.ownsGolfer(id)
             CardBox {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Canvas(Modifier.size(width = 62.dp, height = 76.dp)) {
-                        drawGolferSprite(size.width / 2, size.height - 3f, id, player.look, .85f)
+                    Canvas(Modifier.size(width = 78.dp, height = 92.dp)) {
+                        drawGolferSprite(size.width / 2, size.height - 3f, id, player.look, 1.08f)
                     }
                     Spacer(Modifier.width(10.dp))
                     Column {
