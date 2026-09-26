@@ -57,3 +57,18 @@ The range camera is 18% closer to the world around the ball. Golfer sprites and 
 ## Preview 0.10
 
 The enlarged range scene is clipped to its card, keeping the distance, speed and altitude HUD visible. The launch charge tracker shows projected total swing power in m/s, calculated from the same launch formula used when the ball is struck. In debuggable previews, each `ADMIN` voucher redemption grants $100,000 and can be used again for testing.
+
+## Preview 0.11 — Orbit Drive Labs
+
+This update uses a separate Android application ID (`com.orbitdrive.game.preview.labs`) and appears as **Orbit Drive Labs**. It starts with a fresh save and installs alongside v0.10. Keep the original Orbit Drive installed to retain and return to its existing progress. The complete v0.10 source is pinned on the `rollback/v0.10` branch at commit `f2766a987c029ca5ac64767b8da2d1f212233364`.
+
+Open **CONTRACTS • HOME** on the Range screen for:
+
+- Two selectable flight abilities from Lightning, Bounce, Rocket and Gravity, with one use per shot (research grants extra lightning charges).
+- Three rotating contracts, range tickets, and permanent Clubhouse, Workshop, Trophy Room and Launch Pad upgrades.
+- A combination book covering Thunder Skip, Slingshot Launch, Double Cargo and Magnetic Coast. The latter two require upgraded relic pairs.
+- A weekly expedition with fixed Carbon Slice equipment and one of three repeating rule sets: low gravity without lightning, high rebound with low friction, or aircraft relay with extra lightning. Expedition shots do not alter the main range's cash, research or best distance.
+- A six-tier weekly reward track. All play counts; no daily streak is required. Earned unclaimed tiers are automatically paid at rollover. Weekly expeditions rotate Monday at 00:00 UTC, use the device date offline, and have no competitive leaderboard.
+- Three collectible ball trails and persistent expedition medals. Range buildings evolve across four eras, and a gold personal-best marker shows the distance to beat.
+
+Existing 24.5-second active-flight pacing continues. The ADMIN testing voucher remains repeatable for $100,000 in debuggable builds. No analytics, online account or Google Play cloud save was added in this update.

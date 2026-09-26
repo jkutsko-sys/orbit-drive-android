@@ -35,6 +35,16 @@ class LaunchSmokeTest {
         rule.onNodeWithText("Ascend").performClick()
         rule.onNodeWithText("GOLF BALLS").assertExists()
     }
+    @Test fun clubhouseAndWeeklyExpeditionOpen() {
+        rule.onNodeWithTag("clubhouse").performClick()
+        rule.onNodeWithText("CLUBHOUSE").assertExists()
+        rule.onNodeWithText("Weekly").performClick()
+        rule.onNodeWithTag("enterExpedition").performClick()
+        rule.onNodeWithText("WEEKLY EXPEDITION").assertExists()
+        rule.onNodeWithText("EXIT EXPEDITION").performClick()
+        rule.onNodeWithText("THE INFINITE RANGE").assertExists()
+    }
+
     @Test fun settingsOpensFromCashHeader() {
         rule.onNodeWithTag("settings").assertExists().performClick()
         rule.onNodeWithText("SETTINGS").assertExists()

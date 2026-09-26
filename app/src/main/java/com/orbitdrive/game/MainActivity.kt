@@ -66,16 +66,20 @@ class MainActivity : ComponentActivity() {
             previousHandler?.uncaughtException(thread, error)
         }
         val game = GameEngine(this)
+        val expedition = GameEngine(this, true, game.engagement)
         audio = AudioDirector(this)
-        setContent { OrbitApp(game, audio, crashPrefs.getString("last", null)) { crashPrefs.edit().remove("last").apply() } }
+        setContent { OrbitApp(game, expedition, audio, crashPrefs.getString("last", null)) { crashPrefs.edit().remove("last").apply() } }
     }
 }
 
-@Composable private fun OrbitApp(game: GameEngine, audio: AudioDirector, previousCrash: String?, clearCrash: () -> Unit) {
+@Composable private fun OrbitApp(game: GameEngine, expedition: GameEngine, audio: AudioDirector, previousCrash: String?, clearCrash: () -> Unit) {
     var tab by remember { mutableIntStateOf(0) }
+    var hubOpen by remember { mutableStateOf(false) }
+    var expeditionMode by remember { mutableStateOf(false) }
+    val activeGame = if (expeditionMode) expedition else game
     var settingsOpen by remember { mutableStateOf(false) }
-    LaunchedEffect(game.soundEventId) { if (game.soundEventId > 0) audio.cue(game.soundCue) }
-    LaunchedEffect(game.distance) { audio.setArea(game.distance) }
+    LaunchedEffect(activeGame, activeGame.soundEventId) { if (activeGame.soundEventId > 0) audio.cue(activeGame.soundCue) }
+    LaunchedEffect(activeGame.distance) { audio.setArea(activeGame.distance) }
     var crash by remember { mutableStateOf(previousCrash) }
     if (crash != null) AlertDialog(onDismissRequest = { crash = null; clearCrash() },
         title = { Text("Previous launch ended unexpectedly") },
@@ -83,6 +87,7 @@ class MainActivity : ComponentActivity() {
         confirmButton = { TextButton(onClick = { crash = null; clearCrash() }) { Text("Close") } })
     val pages = listOf("Range", "Research", "Clubs", "Golfer", "Ascend")
     MaterialTheme(colorScheme = darkColorScheme(primary = Mint, surface = Card, background = Night)) {
+        if (hubOpen) EngagementHub(activeGame, onExpedition = { expeditionMode = true; tab = 0; hubOpen = false }, onClose = { hubOpen = false })
         if (settingsOpen) SettingsDialog(game, audio) { settingsOpen = false }
         Scaffold(containerColor = Night, bottomBar = {
             NavigationBar(containerColor = Card) {
@@ -95,7 +100,7 @@ class MainActivity : ComponentActivity() {
         }) { padding ->
             Box(Modifier.fillMaxSize().padding(padding)) {
                 when (tab) {
-                    0 -> RangeScreen(game, true) { settingsOpen = true }
+                    0 -> RangeScreen(activeGame, true, openSettings = { settingsOpen = true }, openHub = { if (activeGame.phase != Phase.FLYING && activeGame.phase != Phase.CHARGING) game.engagement.refreshWeek(); hubOpen = true }, exitExpedition = { expeditionMode = false })
                     1 -> ResearchScreen(game)
                     2 -> ClubsScreen(game)
                     3 -> GolferScreen(game)
@@ -119,7 +124,7 @@ class MainActivity : ComponentActivity() {
     Text(text, modifier.background(Color.White.copy(alpha = .07f), RoundedCornerShape(9.dp)).padding(9.dp), color = Color.White, fontSize = 12.sp)
 }
 
-@Composable private fun RangeScreen(game: GameEngine, visible: Boolean, openSettings: () -> Unit) {
+@Composable private fun RangeScreen(game: GameEngine, visible: Boolean, openSettings: () -> Unit, openHub: () -> Unit, exitExpedition: () -> Unit) {
     LaunchedEffect(game, visible) {
         var last = System.nanoTime()
         while (visible) {
@@ -133,7 +138,8 @@ class MainActivity : ComponentActivity() {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
                 Text("ORBIT DRIVE", fontSize = 25.sp, fontWeight = FontWeight.Black, color = Color.White)
-                Text("THE INFINITE RANGE", fontSize = 10.sp, letterSpacing = 3.sp, color = Mint)
+                Text(if (game.expedition) "WEEKLY EXPEDITION" else "THE INFINITE RANGE", fontSize = 10.sp, letterSpacing = 2.sp, color = Mint)
+                TextButton(onClick = openHub, modifier = Modifier.height(32.dp).testTag("clubhouse")) { Text("CONTRACTS • HOME", fontSize = 10.sp) }
             }
             Column(horizontalAlignment = Alignment.End) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -144,6 +150,10 @@ class MainActivity : ComponentActivity() {
                 }
                 Text("BEST ${game.format(game.bestDistance)} m", fontSize = 10.sp, color = Muted)
             }
+        }
+        if (game.expedition) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(game.engagement.expeditionTitle, Modifier.weight(1f), color = Mint, fontSize = 12.sp)
+            TextButton(onClick = exitExpedition, enabled = game.phase != Phase.FLYING && game.phase != Phase.CHARGING) { Text("EXIT EXPEDITION", fontSize = 10.sp) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             listOf("DISTANCE" to "${game.format(game.distance)} m", "BALL SPEED" to "${game.format(game.speed)} m/s", "ALTITUDE" to "${game.format(game.altitude)} m")
@@ -156,6 +166,9 @@ class MainActivity : ComponentActivity() {
         }
         Box(Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(17.dp)).background(Card)) {
             RangeArt(game, Modifier.fillMaxSize())
+            if (game.ghostTarget > 0) Text(if (game.distance > game.ghostTarget) "NEW PERSONAL BEST!" else "PB GHOST • ${game.format(max(0.0, game.ghostTarget - game.distance))} m ahead",
+                Modifier.align(Alignment.BottomStart).padding(10.dp).background(Night.copy(alpha = .7f)).padding(5.dp), color = Color(0xffffd47a), fontSize = 10.sp)
+            if (game.comboFlashFor > 0) Text("✦ ${game.comboMessage.uppercase()} ✦", Modifier.align(Alignment.Center).background(Night.copy(alpha = .8f)).padding(12.dp), color = Mint, fontWeight = FontWeight.Black)
             if (game.electrifiedFor > 0) Text("⚡ ELECTRIFIED  ${"%.1f".format(game.electrifiedFor)}s",
                 Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp).background(Color(0xff12394d), RoundedCornerShape(12.dp)).padding(8.dp),
                 color = Color(0xffbdf6ff), fontWeight = FontWeight.Black, fontSize = 12.sp)
@@ -190,8 +203,16 @@ class MainActivity : ComponentActivity() {
                 Text("${game.launches} swings • ${game.relics} relics", fontSize = 10.sp, color = Muted)
             }
             if (game.phase == Phase.FLYING) {
-                Button(onClick = game::lightning, enabled = game.lightningCharges > 0, modifier = Modifier.height(60.dp)) {
-                    Text("⚡ ${game.lightningCharges}", fontWeight = FontWeight.Black)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    game.engagement.slots.forEach { ability ->
+                        Button(onClick = { game.useAbility(ability) }, enabled = game.abilityCharges(ability) > 0,
+                            modifier = Modifier.height(60.dp).width(80.dp), contentPadding = PaddingValues(3.dp)) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("${ability.icon} ${game.abilityCharges(ability)}", fontWeight = FontWeight.Black)
+                                Text(ability.title, fontSize = 10.sp)
+                            }
+                        }
+                    }
                 }
             } else {
                 // Press starts charging immediately; lift releases. The pointer gesture also handles short taps.
@@ -313,11 +334,34 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
             val x = ((i * 90f - drift * 1.8f) % (size.width + 90) + size.width + 90) % (size.width + 90)
             drawLine(Color.White.copy(alpha = .17f), Offset(x, ground + 18), Offset(x + 25, ground + 18), strokeWidth = 2f)
         }
+        if (game.distance < 450 && !game.expedition) {
+            val homeX = size.width * .7f - (game.distance * .55).toFloat()
+            val era = game.engagement.facilities.sum() / 4
+            val wall = listOf(Color(0xff71523f), Color(0xff446882), Color(0xff65779e), Color(0xff906cba))[era.coerceAtMost(3)]
+            drawRoundRect(wall, Offset(homeX, ground - 38 - era * 14), Size(100f + era * 20, 38f + era * 14))
+            drawLine(Color(0xffffd47a), Offset(homeX - 4, ground - 40 - era * 14), Offset(homeX + 104 + era * 20, ground - 40 - era * 14), strokeWidth = 5f)
+            repeat(3 + era) { i -> drawRect(Color(0xffa3e9ef), Offset(homeX + 9 + i * 22, ground - 27 - era * 10), Size(12f, 13f)) }
+            if (game.engagement.facilities[3] > 0) {
+                drawLine(Color(0xffddd9ef), Offset(homeX + 126,ground), Offset(homeX + 126,ground - 66), strokeWidth = 14f)
+                drawCircle(Mint, 9f, Offset(homeX + 126,ground - 66))
+            }
+            if (game.engagement.totalMedals > 0) drawCircle(Color(0xffffd47a), 8f, Offset(homeX + 50,ground - 49 - era * 14))
+        }
         val ballX = size.width * if (game.phase == Phase.READY || game.phase == Phase.CHARGING) .18f else .36f
         val height = (ln(1 + max(0.0, game.altitude)) / ln(200.0)).toFloat() * size.height * .55f
         val ballY = max(size.height * .15f, ground - 10 - height)
         drawCircle(Color.Black.copy(alpha = .25f), radius = 12f, center = Offset(ballX, ground))
-        if (game.phase == Phase.FLYING) drawLine(Mint.copy(alpha = .65f), Offset(ballX - min(130f, (game.speed * .3).toFloat()), ballY + 20), Offset(ballX - 8, ballY + 2), strokeWidth = 6f)
+        val trailColor = listOf(Mint, Color(0xffffcf70), Color(0xffd39cff), Color(0xff87e9ff))[game.engagement.trailSelected]
+        if (game.phase == Phase.FLYING) drawLine(trailColor.copy(alpha = .65f), Offset(ballX - min(130f, (game.speed * .3).toFloat()), ballY + 20), Offset(ballX - 8, ballY + 2), strokeWidth = 6f)
+        if (game.ghostTarget > 0) {
+            val ghostX = ballX + ((game.ghostTarget - game.distance) * .55).toFloat()
+            if (ghostX in 0f..size.width) {
+                drawLine(Color(0xffffd47a).copy(alpha = .65f), Offset(ghostX, ground - 65), Offset(ghostX, ground), strokeWidth = 2f)
+                drawCircle(Color(0xffffd47a).copy(alpha = .55f), 13f, Offset(ghostX, ground - 65), style = Stroke(2f))
+            }
+        }
+        if (game.gravityPulseFor > 0) drawCircle(Color(0xffc8aaff).copy(alpha = .6f), 30f, Offset(ballX,ballY), style = Stroke(3f))
+        if (game.rocketFlashFor > 0) drawLine(Color(0xffffa454), Offset(ballX - 48,ballY), Offset(ballX - 11,ballY), strokeWidth = 12f)
         val ball = game.ball
         if (game.electrifiedFor > 0) {
             val shimmer = 3f + (game.electrifiedFor.toFloat() * 5f) % 6f
