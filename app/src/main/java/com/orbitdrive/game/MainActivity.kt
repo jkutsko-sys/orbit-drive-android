@@ -161,12 +161,23 @@ class MainActivity : ComponentActivity() {
                 Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(12.dp)
                     .background(Color.Black.copy(alpha = .55f), RoundedCornerShape(11.dp)).padding(10.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("NEXT: ${planet.name.uppercase()}", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                        Text("NEXT MILESTONE: ${planet.name.uppercase()}", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
                         Text("${game.format(planet.distance)} m", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Mint)
                     }
-                    LinearProgressIndicator(progress = { (game.planetHP / planet.hp).toFloat().coerceIn(0f, 1f) },
+                    LinearProgressIndicator(progress = { (game.distance / planet.distance).toFloat().coerceIn(0f, 1f) },
                         modifier = Modifier.fillMaxWidth().padding(top = 7.dp).height(5.dp), color = Mint, trackColor = Color.White.copy(alpha = .2f))
-                    Text("PLANET HP ${game.format(game.planetHP)} / ${game.format(planet.hp)}", fontSize = 9.sp, color = Muted)
+                    Text("REACH IT FOR A BOUNTY • REPEATS EVERY SHOT", fontSize = 9.sp, color = Muted)
+                }
+            }
+            if (game.firstMilestoneFor > 0) {
+                Column(Modifier.align(Alignment.Center).fillMaxWidth(.88f)
+                    .background(Night.copy(alpha = .88f), RoundedCornerShape(22.dp)).padding(18.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("✦ FIRST CONTACT ✦", color = Color(0xffffd47a), fontSize = 22.sp, fontWeight = FontWeight.Black)
+                    Text(game.milestoneName.uppercase(), color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Black)
+                    Text("NEW DISTANCE MILESTONE", color = Mint, fontSize = 11.sp, letterSpacing = 2.sp)
+                    LinearProgressIndicator(progress = { (1 - game.firstMilestoneFor / 3).toFloat().coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp).height(4.dp), color = Color(0xffffd47a))
                 }
             }
         }
@@ -307,14 +318,47 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
             drawPath(bolt, Color.White.copy(alpha = flash), style = Stroke(width = 2f))
         }
         if (game.planeSpriteFor > 0) {
-            val appear = (game.planeSpriteFor / 1.8).toFloat().coerceIn(0f, 1f)
-            val px = ballX - 72 + (1 - appear) * 32f; val py = ballY - 42 - (1 - appear) * 10f
-            drawLine(Color.White.copy(alpha = appear * .5f), Offset(px + 30, py + 13), Offset(ballX, ballY), strokeWidth = 2f)
-            drawRoundRect(Color(0xffe7e9ee), Offset(px, py), Size(65f, 15f), androidx.compose.ui.geometry.CornerRadius(8f))
-            drawRect(Color(0xff5a8ed4), Offset(px + 21, py + 7), Size(27f, 12f))
-            drawRect(Color(0xffd0d8e5), Offset(px + 4, py - 16), Size(7f, 18f))
-            drawCircle(Color(0xff213d69), 4f, Offset(px + 55, py + 7))
-            drawLine(Color.White, Offset(px + 65, py - 10), Offset(px + 65, py + 24), strokeWidth = 3f)
+            val stage = game.level(Tech.PLANES)
+            val appear = (game.planeSpriteFor / (if (stage >= 7) 2.5 else 1.8)).toFloat().coerceIn(0f, 1f)
+            val scale = 0.75f + stage * .035f
+            val px = ballX - 86 * scale + (1 - appear) * 34f
+            val py = ballY - 48 * scale
+            drawLine(Color.White.copy(alpha = appear * .55f), Offset(px + 44 * scale, py + 13 * scale), Offset(ballX, ballY), strokeWidth = 2f)
+            when {
+                stage < 3 -> { // Folded paper dart
+                    val paper = androidx.compose.ui.graphics.Path().apply {
+                        moveTo(px, py); lineTo(px + 72 * scale, py + 12 * scale)
+                        lineTo(px + 20 * scale, py + 27 * scale); lineTo(px + 28 * scale, py + 13 * scale); close()
+                    }
+                    drawPath(paper, Color(0xfff4f4ec).copy(alpha = appear))
+                    drawLine(Color(0xff7b9cc3), Offset(px, py), Offset(px + 28 * scale, py + 13 * scale), strokeWidth = 2f)
+                }
+                stage < 10 -> { // Propeller and biplane silhouettes
+                    drawRoundRect(Color(0xffe7e9ee).copy(alpha = appear), Offset(px, py + 7 * scale), Size(72 * scale, 14 * scale))
+                    drawLine(Color(0xff6bbbe7), Offset(px + 20 * scale, py + 2 * scale), Offset(px + 52 * scale, py + 28 * scale), strokeWidth = 7f * scale)
+                    if (stage >= 6) drawLine(Color(0xffc4d7ed), Offset(px + 12 * scale, py - 9 * scale), Offset(px + 58 * scale, py - 9 * scale), strokeWidth = 5f)
+                    drawLine(Color.White, Offset(px + 72 * scale, py - 8 * scale), Offset(px + 72 * scale, py + 31 * scale), strokeWidth = 3f)
+                }
+                stage < 19 -> { // Swept-wing carrier, then stealth bomber
+                    val jet = androidx.compose.ui.graphics.Path().apply {
+                        moveTo(px + 82 * scale, py + 12 * scale); lineTo(px + 35 * scale, py + 2 * scale)
+                        lineTo(px + 6 * scale, py - 24 * scale); lineTo(px + 15 * scale, py + 10 * scale)
+                        lineTo(px, py + 28 * scale); lineTo(px + 43 * scale, py + 22 * scale); close()
+                    }
+                    drawPath(jet, (if (stage >= 14) Color(0xff526172) else Color(0xffb9cee2)).copy(alpha = appear))
+                    drawCircle(Color(0xff71ddff), 4f * scale, Offset(px + 52 * scale, py + 12 * scale))
+                }
+                else -> { // Rocket and final starship grow with research
+                    drawRoundRect(Color(0xffe9e5fa).copy(alpha = appear), Offset(px + 12 * scale, py), Size(72 * scale, 22 * scale))
+                    val nose = androidx.compose.ui.graphics.Path().apply {
+                        moveTo(px + 84 * scale, py); lineTo(px + 108 * scale, py + 11 * scale)
+                        lineTo(px + 84 * scale, py + 22 * scale); close()
+                    }
+                    drawPath(nose, Color(0xff99eaff).copy(alpha = appear))
+                    drawLine(Color(0xffffac5d).copy(alpha = appear), Offset(px + 10 * scale, py + 11 * scale), Offset(px - 20 * scale, py + 11 * scale), strokeWidth = 12f * scale)
+                    if (stage >= 23) repeat(3) { i -> drawCircle(listOf(Mint, Color(0xffe7a6ff), Color.White)[i], 5f * scale, Offset(px + (35 + i * 18) * scale, py + 11 * scale)) }
+                }
+            }
         }
         if (game.phase == Phase.READY || game.phase == Phase.CHARGING) {
             val gx = ballX - 38f
@@ -369,18 +413,15 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
                 val center = Offset(x, ground * .42f)
                 val radius = if (planet.distance > 100000) 48f else 30f
                 drawCircle(planet.color, radius, center)
-                if (game.planetHP < planet.hp) {
-                    drawLine(Color.Black.copy(alpha = .8f), Offset(x - 12, center.y - 15), Offset(x + 4, center.y), strokeWidth = 3f)
-                    drawLine(Color.Black.copy(alpha = .8f), Offset(x + 4, center.y), Offset(x - 6, center.y + 18), strokeWidth = 3f)
-                }
             }
         }
         game.planetImpactID?.let { id ->
             if (game.planetEffectFor > 0) {
                 val planet = game.planets[id]
-                val progress = (1 - game.planetEffectFor / 1.8).toFloat().coerceIn(0f, 1f)
+                val first = game.firstMilestoneFor > 0
+                val progress = (1 - game.planetEffectFor / (if (first) 3.0 else 1.8)).toFloat().coerceIn(0f, 1f)
                 val center = Offset(size.width * .59f, ground * .42f)
-                val radius = 45f + id * 3f
+                val radius = (if (first) 62f else 45f) + id * 3f
                 drawCircle(planet.color.copy(alpha = if (game.planetShattered && progress > .48f) (1 - progress) * 1.8f else 1f), radius, center)
                 // Ball rushes into the core, then radial fractures and fragments fly out.
                 if (progress < .46f) {
@@ -544,9 +585,10 @@ private fun nodePosition(node: ResearchNode): Offset {
                 Text(club.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Text(if (id == game.equippedClub) "EQUIPPED • LEVEL ${game.clubLevel(id)}" else if (id <= game.ownedClub) "OWNED • LEVEL ${game.clubLevel(id)}" else "LOCKED", color = Mint, fontSize = 10.sp)
                 Text(game.clubPerks[id], color = Color(0xffffd787), fontSize = 11.sp)
+                Text("MASTERWORK ${game.clubMilestoneCount(id)}/3 • every 10 levels grants permanent +20% club power", color = Mint, fontSize = 10.sp)
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Pill("SWING ${game.format(club.swing * 1.15.pow(game.clubLevel(id)))}")
+                    Pill("SWING ${game.format(club.swing * 1.15.pow(game.clubLevel(id)) * 1.2.pow(game.clubMilestoneCount(id)))}")
                     Pill("LOFT ${club.loft.toInt()}°")
                     Pill("SMASH ${"%.2f".format(club.smash)}×")
                 }
@@ -607,11 +649,11 @@ private fun nodePosition(node: ResearchNode): Offset {
             Spacer(Modifier.height(20.dp))
             Icon(Icons.Default.AutoAwesome, null, Modifier.size(70.dp).align(Alignment.CenterHorizontally), tint = Mint)
             Text("ASCEND", Modifier.fillMaxWidth(), fontSize = 30.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center)
-            Text("Restart your run and forge permanent relics. Every relic multiplies launch speed, planet damage, and earnings by 1.35×.",
+            Text("Restart the range and earn permanent relics. Spend them to discover and upgrade powers that carry through every ascension.",
                 Modifier.fillMaxWidth().padding(14.dp), color = Muted, textAlign = TextAlign.Center)
             Text("${game.relics} RELICS  •  ${"%.2f".format(game.multiplier)}× POWER  •  ${game.ascensions} ASCENSIONS", Modifier.fillMaxWidth(), color = Mint, fontSize = 12.sp, textAlign = TextAlign.Center)
             Spacer(Modifier.height(24.dp))
-            Text("Potential relics: +${game.potentialRelics}", Modifier.fillMaxWidth(), color = Mint, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text("Ascension reward: +${game.ascensionReward} relics", Modifier.fillMaxWidth(), color = Mint, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
             Text("Unlock at 45K m best distance. Relics depend on total distance driven this run.",
                 Modifier.fillMaxWidth().padding(12.dp), color = Muted, fontSize = 12.sp, textAlign = TextAlign.Center)
             Button(onClick = { confirm = true }, enabled = game.ascendAvailable, modifier = Modifier.fillMaxWidth()) { Text("ASCEND AND RESET RUN") }
@@ -620,6 +662,26 @@ private fun nodePosition(node: ResearchNode): Offset {
         Text("RELIC COLLECTION  •  ${game.relicBank} TO SPEND", color = Mint, fontWeight = FontWeight.Black)
         Spacer(Modifier.height(8.dp))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            CardBox {
+                Text("RELIC DISCOVERY", color = Color.White, fontWeight = FontWeight.Black)
+                Text("Pay relics to reveal one random new power. Discoveries and ranks persist through ascension.", color = Muted, fontSize = 11.sp)
+                Text("${game.ascensionRelics.indices.count(game::relicDiscovered)}/${game.ascensionRelics.size} discovered", color = Mint, fontSize = 12.sp)
+                if (game.lastDiscovery.isNotEmpty()) Text("NEW: ${game.lastDiscovery}", color = Color(0xffffd47a), fontWeight = FontWeight.Bold)
+                Button(onClick = game::discoverRelic,
+                    enabled = game.relicBank >= game.discoveryCost && game.ascensionRelics.indices.any { !game.relicDiscovered(it) },
+                    modifier = Modifier.fillMaxWidth().testTag("discoverRelic")) {
+                    Text("DISCOVER RANDOM RELIC • ${game.discoveryCost} RELICS")
+                }
+            }
+            game.ascensionRelics.forEachIndexed { id, relic ->
+                if (game.relicDiscovered(id)) CardBox {
+                    Text("${relic.icon}  ${relic.name}  •  RANK ${game.relicLevel(id)}", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(relic.description, color = Mint, fontSize = 11.sp)
+                    Button(onClick = { game.upgradeRelic(id) }, enabled = game.relicLevel(id) < 30 && game.relicBank >= game.relicUpgradeCost(id), modifier = Modifier.fillMaxWidth()) {
+                        Text("UPGRADE • ${game.relicUpgradeCost(id)} RELICS")
+                    }
+                }
+            }
             Text("GOLF BALLS", color = Color.White, fontWeight = FontWeight.Black)
             game.balls.forEachIndexed { index, ball ->
                 CardBox {
@@ -654,8 +716,8 @@ private fun nodePosition(node: ResearchNode): Offset {
             }
         }
     }
-    if (confirm) AlertDialog(onDismissRequest = { confirm = false }, title = { Text("Ascend for +${game.potentialRelics} relics?") },
-        text = { Text("Cash, clubs, research, and planet progress reset. Golfers, golf balls, apparel, and permanent relics remain.") },
+    if (confirm) AlertDialog(onDismissRequest = { confirm = false }, title = { Text("Ascend for +${game.ascensionReward} relics?") },
+        text = { Text("Cash, club ownership and levels, and research reset. Club masterwork bonuses, first-clear milestones, golfers, balls, apparel, and relic ranks remain.") },
         confirmButton = { TextButton(onClick = { game.ascend(); confirm = false }) { Text("Ascend") } },
         dismissButton = { TextButton(onClick = { confirm = false }) { Text("Cancel") } })
 }

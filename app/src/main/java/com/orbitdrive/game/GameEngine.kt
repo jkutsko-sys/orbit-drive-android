@@ -15,7 +15,8 @@ internal data class Apparel(val id: String, val name: String, val price: Int, va
 internal data class BallRelic(val name: String, val relicCost: Int, val power: Double, val tint: Color,
     val stripe: Color, val mark: String, val description: String)
 internal data class Obstacle(val name: String, val at: Double, val height: Double, val speedLoss: Double)
-internal data class Planet(val name: String, val distance: Double, val hp: Double, val color: Color)
+internal data class Planet(val name: String, val distance: Double, val color: Color)
+internal data class AscensionRelic(val name: String, val icon: String, val description: String)
 internal enum class Tech(val title: String, val description: String, val baseCost: Double, val max: Int) {
     POWER("Swingcraft", "Speed and impact", 20.0, 24),
     GRAVITY("Atmosphere", "Flight and gravity", 90.0, 24),
@@ -23,7 +24,7 @@ internal enum class Tech(val title: String, val description: String, val baseCos
     FRICTION("Surface", "Roll and terrain", 45.0, 24),
     LIGHTNING("Stormcalling", "Active lightning", 180.0, 24),
     PLANES("Flightpath", "Aircraft carries", 260.0, 24),
-    ORBIT("Orbital Science", "Planet encounters", 900.0, 24),
+    ORBIT("Milestone Mapping", "Distance milestones and bounties", 900.0, 24),
     ASTRAL("Astral Forge", "Deep space rewards", 2000.0, 24)
 }
 internal data class ResearchNode(val id: String, val branch: Tech, val tier: Int, val name: String,
@@ -36,7 +37,7 @@ internal object ResearchTree {
         listOf("Polished Dimples", "Waxed Fairway", "Low Drag Coat", "Ice Slick", "Downhill Run", "Magnetic Glide", "Vacuum Roll", "Frictionless Wake", "Slick Contact", "Grass Cutter", "Fast Turf", "Dust Skater", "Skim Surface", "Smooth Orbit", "Low Resistance", "Rolling Grace", "Silent Bearings", "Glass Fairway", "Surface Slip", "Glide Rail", "Low Spin", "Coastline", "Vacuum Lanes", "Perpetual Glide"),
         listOf("Static Charge", "Storm Cell", "Double Tap", "Arc Conductor", "Thunderhead", "Chain Lightning", "Ion Lance", "Tempest Engine", "Charged Dimples", "Volt Reservoir", "Flash Step", "Cloud Ground", "Arc Jump", "Spark Trail", "Conductive Shell", "Stormglass Core", "Live Wire", "Ball Lightning", "Corona Field", "Electric Wake", "Thunder Rail", "Static Shield", "Sky Circuit", "Supercell"),
         listOf("Paper Glider", "Tailwind Taxi", "Cargo Sling", "Jetstream", "Biplane Boost", "Rocket Tow", "Sky Convoy", "Orbital Carrier", "Propeller Assist", "Pilot Signal", "Long Tow", "Wing Lift", "Air Relay", "Flight Crew", "Second Approach", "Twin Escort", "High Altitude", "Turbine Pass", "Cloud Runway", "Afterburner", "Sky Caravan", "Launch Ramp", "Star Pilot", "Orbital Armada"),
-        listOf("Lunar Survey", "Impact Scanner", "Crater Bonus", "Gravity Slingshot", "Armor Piercer", "Planetbreaker", "Core Detonation", "Star Chart", "Crust Reading", "Fault Finder", "Dense Core", "Moon Quarry", "Impact Angle", "Crater Field", "Core Breach", "Shield Piercer", "Gravity Harvest", "Ring Run", "Planet Echo", "Orbital Strike", "Core Fragment", "Red Planet Route", "Starfall", "Cosmic Slingshot"),
+        listOf("Lunar Survey", "Rangefinder", "Crater Cache", "Gravity Route", "Star Compass", "Planet Atlas", "First Contact", "Cosmic Charter", "Orbit Beacons", "Bounty Trail", "Waypoint Echo", "Moon Quarry", "Ring Navigator", "Meteor Ledger", "Deep Chart", "Slingshot Corridor", "Astral Signpost", "Comet Tally", "Celestial Route", "Solar Wayfinder", "Milestone Echo", "Red Planet Route", "Starfall Ledger", "Infinite Horizon"),
         listOf("Stardust Purse", "Relic Lens", "Nebula Vault", "Cosmic Dividend", "Nova Furnace", "Celestial Bank", "Galaxy Mint", "Infinity Engine", "Star Ledger", "Meteor Market", "Nebula Interest", "Orbit Trade", "Planet Jackpot", "Relic Collector", "Astral Dividend", "Relic Alchemy", "Supernova Bank", "Cosmic Vault", "Golden Trail", "Starlight Fund", "Galaxy Ledger", "Treasure Comet", "Infinite Yield", "Astral Crown")
     )
     private val effects = listOf(
@@ -46,7 +47,7 @@ internal object ResearchTree {
         listOf("reduced drag", "+rolling distance", "reduced drag", "+ground speed", "+rolling distance", "+speed retention", "reduced drag", "KEYSTONE: glide wake", "+roll speed on first contact", "reduced drag", "+roll speed", "reduced drag", "+rolling distance", "reduced drag", "+roll speed", "KEYSTONE: roll coasts farther", "reduced drag", "+roll speed", "reduced drag", "+rolling distance", "reduced drag", "+roll speed", "reduced drag", "KEYSTONE: near-frictionless final roll"),
         listOf("unlock lightning tap", "+lightning impulse", "+one lightning charge", "+lightning impulse", "+lightning lift", "+one lightning charge", "+lightning impulse", "KEYSTONE: lightning arcs again", "+charged ball duration", "+lightning impulse", "+charged ball duration", "+lightning lift", "+lightning impulse", "+charged ball duration", "+lightning impulse", "KEYSTONE: electrify ball, melt friction and shatter obstacles", "+charged ball duration", "+lightning impulse", "+charged ball duration", "+lightning lift", "+charged ball duration", "+lightning impulse", "+charged ball duration", "KEYSTONE: supercell chain burst"),
         listOf("unlock aircraft", "+carry speed", "+carry altitude", "+carry speed", "+carry altitude", "+carry speed", "+carry speed", "KEYSTONE: orbital carrier", "+first plane tow duration", "+carry speed", "+carry altitude", "+carry speed", "+carry altitude", "+carry speed", "+aircraft signal", "KEYSTONE: second plane carry", "+carry speed", "+carry altitude", "+carry speed", "+carry speed", "+carry altitude", "+carry speed", "+carry altitude", "KEYSTONE: third escort carry"),
-        listOf("reveal planetary HP", "+impact damage", "+planet bounty", "+impact speed", "+impact damage", "+planet bounty", "+impact damage", "KEYSTONE: star chart burst", "+planet damage", "+planet bounty", "+impact damage", "+planet bounty", "+impact damage", "+planet bounty", "+impact damage", "KEYSTONE: pierce planetary armor", "+planet bounty", "+impact damage", "+planet bounty", "+impact damage", "+planet bounty", "+impact damage", "+planet bounty", "KEYSTONE: shattered planet slingshot"),
+        listOf("+checkpoint bounty", "+checkpoint bounty", "+distance reward", "+checkpoint bounty", "+checkpoint bounty", "+checkpoint bounty", "+distance reward", "KEYSTONE: charted bounties surge", "+checkpoint bounty", "+checkpoint bounty", "+distance reward", "+checkpoint bounty", "+checkpoint bounty", "+checkpoint bounty", "+distance reward", "KEYSTONE: checkpoint slingshot", "+checkpoint bounty", "+checkpoint bounty", "+distance reward", "+checkpoint bounty", "+checkpoint bounty", "+checkpoint bounty", "+distance reward", "KEYSTONE: horizon bonus and comet boost"),
         listOf("+distance cash", "+relic power", "+planet bounty", "+distance cash", "+relic power", "+planet bounty", "+distance cash", "KEYSTONE: infinite yield", "+distance cash", "+planet bounty", "+distance cash", "+planet bounty", "+distance cash", "+planet bounty", "+distance cash", "KEYSTONE: extra ascension relic", "+distance cash", "+planet bounty", "+distance cash", "+planet bounty", "+distance cash", "+planet bounty", "+distance cash", "KEYSTONE: combo cash crescendo")
     )
     val all: List<ResearchNode> = Tech.entries.flatMap { branch ->
@@ -83,36 +84,34 @@ internal enum class Phase { READY, CHARGING, FLYING, LANDED }
 internal class GameEngine(context: Context) {
     private val prefs = context.getSharedPreferences("orbit_drive_v1", Context.MODE_PRIVATE)
     private val previewBuild = context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
-    var adminVoucherUsed by mutableStateOf(false); private set
     fun redeemVoucher(code: String): String {
         if (!previewBuild) return "Vouchers are unavailable in this build"
         if (!code.trim().equals("ADMIN", ignoreCase = true)) return "Invalid voucher code"
-        if (adminVoucherUsed) return "ADMIN voucher already redeemed"
-        adminVoucherUsed = true; cash += 10_000.0; save(); cue("purchase")
+        cash += 10_000.0; save(); cue("purchase")
         return "$10,000 added for testing"
     }
     val clubs = listOf(
         Club("Bent Starter", 0.0, 35.0, 31.0, 1.12),
-        Club("Garage Sale Wood", 160.0, 45.0, 29.0, 1.20),
-        Club("Steel Driver", 600.0, 58.0, 25.0, 1.31),
-        Club("Carbon Slice", 2200.0, 73.0, 23.0, 1.42),
-        Club("Titanium Cannon", 8000.0, 92.0, 21.0, 1.52),
-        Club("Mach One", 28000.0, 115.0, 20.0, 1.65),
-        Club("Plasma Wood", 95000.0, 145.0, 18.0, 1.78),
-        Club("Thunder Driver", 320000.0, 185.0, 18.0, 1.92),
-        Club("Moonshot Mk I", 1100000.0, 235.0, 17.0, 2.05),
-        Club("Starbreaker", 3800000.0, 300.0, 16.0, 2.19),
-        Club("Nebula Lance", 13000000.0, 380.0, 15.0, 2.35),
-        Club("Nova Hammer", 45000000.0, 480.0, 14.0, 2.50),
-        Club("Void Bender", 155000000.0, 620.0, 13.0, 2.68),
-        Club("Galactic Crown", 530000000.0, 800.0, 12.0, 2.85),
-        Club("Zenith", 1800000000.0, 1050.0, 11.0, 3.05)
+        Club("Garage Sale Wood", 500.0, 45.0, 29.0, 1.20),
+        Club("Steel Driver", 2600.0, 58.0, 25.0, 1.31),
+        Club("Carbon Slice", 12000.0, 73.0, 23.0, 1.42),
+        Club("Titanium Cannon", 55000.0, 92.0, 21.0, 1.52),
+        Club("Mach One", 230000.0, 115.0, 20.0, 1.65),
+        Club("Plasma Wood", 950000.0, 145.0, 18.0, 1.78),
+        Club("Thunder Driver", 4000000.0, 185.0, 18.0, 1.92),
+        Club("Moonshot Mk I", 17000000.0, 235.0, 17.0, 2.05),
+        Club("Starbreaker", 72000000.0, 300.0, 16.0, 2.19),
+        Club("Nebula Lance", 310000000.0, 380.0, 15.0, 2.35),
+        Club("Nova Hammer", 1300000000.0, 480.0, 14.0, 2.50),
+        Club("Void Bender", 5500000000.0, 620.0, 13.0, 2.68),
+        Club("Galactic Crown", 23000000000.0, 800.0, 12.0, 2.85),
+        Club("Zenith", 100000000000.0, 1050.0, 11.0, 3.05)
     )
     val clubPerks = listOf(
         "Starter • no special modifier", "Rebound Wood • stronger first bounce", "Steel Tempo • wider perfect timing",
         "Twin Launch • two balls, 2× distance cash, 18% slower launch", "Dust Kicker • softer obstacle collisions",
         "Mach Draft • less air drag", "Plasma Tail • bonus lightning impulse", "Storm Driver • one extra lightning charge",
-        "Moonshot • lower gravity", "Starbreaker • stronger planet impact", "Nebula Bank • richer planet bounties",
+        "Moonshot • lower gravity", "Starbreaker • 35% bigger checkpoint bounties", "Nebula Bank • richer checkpoint bounties",
         "Nova Hammer • lightning adds lift", "Void Bender • extra skyhook lift", "Galactic Crown • more cash per meter",
         "Zenith • every previous club perk, no Twin Launch speed penalty"
     )
@@ -150,9 +149,9 @@ internal class GameEngine(context: Context) {
         Obstacle("satellite debris", 15500.0, 42.0, 0.16)
     )
     val planets = listOf(
-        Planet("Moon", 8000.0, 160.0, Color(0xffbec6d1)), Planet("Mars", 45000.0, 450.0, Color(0xfff98b64)),
-        Planet("Jupiter", 300000.0, 1400.0, Color(0xffd8a87c)), Planet("Saturn", 2000000.0, 5000.0, Color(0xffead999)),
-        Planet("Neptune", 12000000.0, 18000.0, Color(0xff648bff)), Planet("Next Star", 80000000.0, 65000.0, Color(0xff87ffc4))
+        Planet("Moon", 8000.0, Color(0xffbec6d1)), Planet("Mars", 45000.0, Color(0xfff98b64)),
+        Planet("Jupiter", 300000.0, Color(0xffd8a87c)), Planet("Saturn", 2000000.0, Color(0xffead999)),
+        Planet("Neptune", 12000000.0, Color(0xff648bff)), Planet("Next Star", 80000000.0, Color(0xff87ffc4))
     )
     var cash by mutableStateOf(0.0); private set
     var lifetimeDistance by mutableStateOf(0.0); private set
@@ -170,8 +169,49 @@ internal class GameEngine(context: Context) {
     private val ownedApparel = mutableSetOf<String>()
     private val clubLevels = MutableList(clubs.size) { 0 }
     private val purchased = mutableSetOf<String>()
-    private val damage = MutableList(planets.size) { 0.0 }
-    private val destroyed = MutableList(planets.size) { false }
+    private val destroyed = MutableList(planets.size) { false } // First clears persist across ascensions.
+    private val runDestroyed = MutableList(planets.size) { false }
+    private val clubMilestones = MutableList(clubs.size) { 0 }
+    val ascensionRelics = listOf(
+        AscensionRelic("Titan Grip", "✊", "+12% launch power per rank"),
+        AscensionRelic("Golden Dimples", "◉", "+18% distance cash per rank"),
+        AscensionRelic("Star Cartographer", "✧", "+20% checkpoint bounty per rank"),
+        AscensionRelic("Feather Field", "☁", "6% less gravity per rank"),
+        AscensionRelic("Rolling Comet", "↗", "8% less ground drag per rank"),
+        AscensionRelic("Storm Battery", "⚡", "+8% lightning impulse per rank"),
+        AscensionRelic("Flight Beacon", "✈", "+10% aircraft carry per rank"),
+        AscensionRelic("Echo of Ascension", "◇", "+15% relics earned on ascension per rank"),
+        AscensionRelic("Masterwork Shaft", "◆", "+8% club power per rank"),
+        AscensionRelic("Horizon Dividend", "✦", "+10% all shot cash per rank")
+    )
+    private val relicLevels = MutableList(ascensionRelics.size) { 0 }
+    private val discoveredRelics = mutableSetOf<Int>()
+    var lastDiscovery by mutableStateOf(""); private set
+    fun relicLevel(id: Int) = relicLevels[id]
+    fun relicDiscovered(id: Int) = id in discoveredRelics
+    val discoveryCost get() = 2 + discoveredRelics.size * 2 + discoveredRelics.size * discoveredRelics.size
+    fun relicUpgradeCost(id: Int) = (2.0.pow(relicLevels[id]) * (2 + id / 3)).toInt().coerceAtLeast(2)
+    fun discoverRelic() {
+        if (discoveredRelics.size == ascensionRelics.size || relicBank < discoveryCost) return
+        val cost = discoveryCost
+        val unknown = ascensionRelics.indices.filter { it !in discoveredRelics }
+        val found = unknown.random()
+        relicBank -= cost; discoveredRelics.add(found); lastDiscovery = ascensionRelics[found].name
+        save(); cue("purchase")
+    }
+    fun upgradeRelic(id: Int) {
+        if (id !in discoveredRelics || relicLevels[id] >= 30 || relicBank < relicUpgradeCost(id)) return
+        relicBank -= relicUpgradeCost(id); relicLevels[id]++; save(); cue("purchase")
+    }
+    fun clubMilestoneCount(id: Int) = clubMilestones[id]
+    val clubPowerBonus get() = 1.2.pow(clubMilestones[equippedClub]) * (1 + relicLevels[8] * .08)
+    val ascensionReward get() = ((potentialRelics + if (nodeEffect(Tech.ASTRAL, 15)) 1 else 0) *
+        (1 + relicLevels[7] * .15)).toInt().coerceAtLeast(1)
+    val aircraftName get() = when (level(Tech.PLANES)) {
+        in 0..2 -> "Paper glider"; in 3..5 -> "Biplane"; in 6..9 -> "Propeller plane"
+        in 10..13 -> "Cargo jet"; in 14..18 -> "Stealth bomber"; in 19..22 -> "Heavy rocket"
+        else -> "Orbital starship"
+    }
     var revision by mutableStateOf(0); private set
     var soundEventId by mutableStateOf(0); private set
     var soundCue by mutableStateOf(""); private set
@@ -183,7 +223,6 @@ internal class GameEngine(context: Context) {
     var phase by mutableStateOf(Phase.READY); private set
     var message by mutableStateOf("Hold LAUNCH, release near full power"); private set
     var lightningCharges by mutableStateOf(0); private set
-    var planetHP by mutableStateOf(0.0); private set
     var earned by mutableStateOf(0.0); private set
     var shotElapsed by mutableStateOf(0.0); private set
     var combo by mutableStateOf(0); private set
@@ -193,6 +232,8 @@ internal class GameEngine(context: Context) {
     var planetEffectFor by mutableStateOf(0.0); private set
     var planetImpactID by mutableStateOf<Int?>(null); private set
     var planetShattered by mutableStateOf(false); private set
+    var firstMilestoneFor by mutableStateOf(0.0); private set
+    var milestoneName by mutableStateOf(""); private set
     private val brokenObstacles = mutableSetOf<Int>()
     fun obstacleBroken(index: Int) = index in brokenObstacles
     private var vx = 0.0; private var vy = 0.0; private var flightTime = 0.0
@@ -212,10 +253,10 @@ internal class GameEngine(context: Context) {
     val nextGolferUnlock get() = (ownedGolfers.maxOrNull() ?: 0) + 1
     fun ownsApparel(id: String) = id in ownedApparel
     val apparelPower get() = 1.0 + apparel.filter { it.id in ownedApparel }.sumOf { it.bonus }
-    val multiplier get() = 1.35.pow(relics) * (if (nodeEffect(Tech.ASTRAL, 1)) 1.08 else 1.0) * (if (nodeEffect(Tech.ASTRAL, 4)) 1.12 else 1.0)
-    val nextPlanetIndex get() = planets.indices.firstOrNull { !destroyed[it] }
+    val multiplier get() = 1.08.pow(relics) * (1 + relicLevels[0] * .12) * (if (nodeEffect(Tech.ASTRAL, 1)) 1.08 else 1.0) * (if (nodeEffect(Tech.ASTRAL, 4)) 1.12 else 1.0)
+    val nextPlanetIndex get() = planets.indices.firstOrNull { !runDestroyed[it] }
     val nextPlanet get() = nextPlanetIndex?.let { planets[it] }
-    val potentialRelics get() = max(0, log10(max(1.0, lifetimeDistance / 10000)).toInt())
+    val potentialRelics get() = max(0, (log10(max(1.0, bestDistance / 10000)) * 3 + log10(max(1.0, lifetimeDistance / 10000)) * 2).toInt())
     val ascendAvailable get() = bestDistance >= 45000 && potentialRelics > 0 && phase != Phase.FLYING
     fun level(tech: Tech) = ResearchTree.nodes(tech).count { it.id in purchased }
     fun owns(node: ResearchNode) = node.id in purchased
@@ -239,14 +280,14 @@ internal class GameEngine(context: Context) {
         if (phase != Phase.CHARGING) return
         phase = Phase.FLYING; distance = 0.0; previousDistance = 0.0; altitude = 1.0; flightTime = 0.0; shotElapsed = 0.0
         bounceCount = 0; combo = 0; earned = 0.0; planeCarries = 0; secondSwingUsed = false; skyhookUsed = false; deepLiftUsed = false
+        runDestroyed.indices.forEach { runDestroyed[it] = false }
         brokenObstacles.clear(); electrifiedFor = 0.0; lightningFlashFor = 0.0; planeSpriteFor = 0.0; planetEffectFor = 0.0; planetImpactID = null
         lightningCharges = if (level(Tech.LIGHTNING) > 0 || hasClubPerk(7)) 1 +
             (if (nodeEffect(Tech.LIGHTNING, 2)) 1 else 0) + (if (nodeEffect(Tech.LIGHTNING, 5)) 1 else 0) +
             (if (hasClubPerk(7)) 1 else 0) else 0
-        planetHP = nextPlanetIndex?.let { (planets[it].hp - damage[it]).coerceAtLeast(0.0) } ?: 0.0
         val perfect = charge > (if (hasClubPerk(2)) .76 else .85)
         val strikeBonus = if (perfect && nodeEffect(Tech.POWER, 23)) 1.50 else if (perfect && nodeEffect(Tech.POWER, 7)) 1.12 else 1.0
-        val launchSpeed = (club.swing * 1.15.pow(clubLevels[equippedClub]) + level(Tech.POWER) * 11) * club.smash * (0.28 + 0.72 * (if (nodeEffect(Tech.POWER, 1)) max(charge, 0.55) else charge)) * multiplier * golfer.power * apparelPower * ball.power * strikeBonus * (if (twinLaunch && equippedClub != clubs.lastIndex) .82 else 1.0)
+        val launchSpeed = (club.swing * 1.15.pow(clubLevels[equippedClub]) + level(Tech.POWER) * 11) * club.smash * (0.28 + 0.72 * (if (nodeEffect(Tech.POWER, 1)) max(charge, 0.55) else charge)) * multiplier * golfer.power * apparelPower * ball.power * clubPowerBonus * strikeBonus * (if (twinLaunch && equippedClub != clubs.lastIndex) .82 else 1.0)
         val angle = Math.toRadians(club.loft + level(Tech.GRAVITY) * 0.4)
         vx = launchSpeed * cos(angle); vy = launchSpeed * sin(angle); speed = launchSpeed
         launches++; save(); cue("swing"); message = if (perfect) "PERFECT STRIKE!" else "Ball away!"
@@ -257,6 +298,7 @@ internal class GameEngine(context: Context) {
         val impulse = 35 + level(Tech.LIGHTNING) * 18 + (if (hasClubPerk(6)) 32 else 0)
         vx += impulse * multiplier * (if (nodeEffect(Tech.LIGHTNING, 23)) 2.0 else if (nodeEffect(Tech.LIGHTNING, 7)) 1.4 else 1.0)
         vy += impulse * (if (nodeEffect(Tech.LIGHTNING, 4)) 0.8 else 0.4)
+        vx += impulse * relicLevels[5] * .08
         if (nodeEffect(Tech.GRAVITY, 15)) vy = max(vy, 65.0)
         if (hasClubPerk(11)) vy += 35
         lightningFlashFor = .38; cue("lightning")
@@ -270,6 +312,7 @@ internal class GameEngine(context: Context) {
         lightningFlashFor = (lightningFlashFor - dt).coerceAtLeast(0.0)
         planeSpriteFor = (planeSpriteFor - dt).coerceAtLeast(0.0)
         planetEffectFor = (planetEffectFor - dt).coerceAtLeast(0.0)
+        firstMilestoneFor = (firstMilestoneFor - dt).coerceAtLeast(0.0)
         if (phase == Phase.CHARGING) {
             charge += chargeDirection * dt * 0.78
             if (charge >= 1) { charge = 1.0; chargeDirection = -1.0 }
@@ -286,7 +329,7 @@ internal class GameEngine(context: Context) {
             val h = min(0.0125, targetFlightTime - flightTime)
             flightTime += h; previousDistance = distance
             electrifiedFor = (electrifiedFor - h).coerceAtLeast(0.0)
-            vy -= 45 / (1 + level(Tech.GRAVITY) * 0.24 + (if (hasClubPerk(8)) .35 else 0.0)) * h
+            vy -= 45 / (1 + level(Tech.GRAVITY) * 0.24 + (if (hasClubPerk(8)) .35 else 0.0) + relicLevels[3] * .06) * h
             if (nodeEffect(Tech.GRAVITY, 3) && flightTime in 1.0..2.0) vy += 3.0 * h
             if (nodeEffect(Tech.GRAVITY, 8) && vy < 0 && altitude > 0) vy += 4.0 * h
             if (!deepLiftUsed && nodeEffect(Tech.GRAVITY, 7) && distance > 7000 && vy < 0) {
@@ -311,29 +354,29 @@ internal class GameEngine(context: Context) {
                     }
                 }
             }
-            val index = nextPlanetIndex
-            if (index != null && previousDistance < planets[index].distance && distance >= planets[index].distance) {
+            planets.indices.filter { !runDestroyed[it] && previousDistance < planets[it].distance && distance >= planets[it].distance }.forEach { index ->
                 val planet = planets[index]
-                planetImpactID = index; planetEffectFor = 1.8; planetShattered = false
-                val hit = max(1.0, speed * (1 + level(Tech.POWER) * 0.18 + level(Tech.ORBIT) * 0.24) * multiplier * (if (nodeEffect(Tech.ORBIT, 15)) 1.5 else 1.0) * (if (hasClubPerk(9)) 1.35 else 1.0) * (if (nodeEffect(Tech.ORBIT, 7)) 1.2 else 1.0))
-                damage[index] = (damage[index] + hit).coerceAtMost(planet.hp)
-                planetHP = planet.hp - damage[index]
-                if (planetHP <= 0) {
-                    destroyed[index] = true; combo++; planetShattered = true
-                    if (nodeEffect(Tech.ORBIT, 23)) { vx *= 1.4; vy = max(vy, 55.0) }
-                    val bounty = planet.hp * 3 * (1 + level(Tech.ORBIT) * 0.18 + level(Tech.ASTRAL) * 0.14) * multiplier * (if (hasClubPerk(10)) 1.4 else 1.0)
-                    val reward = bounty * (if (twinLaunch) 2.0 else 1.0)
-                    earned += reward; cash += reward
-                    message = "${planet.name} shattered! +$${format(bounty)}"; cue("planet")
-                    planetHP = nextPlanetIndex?.let { planets[it].hp - damage[it] } ?: 0.0
-                } else { message = "${planet.name} impact! ${format(planetHP)} HP left"; vx *= 0.83 }
+                val firstClear = !destroyed[index]
+                runDestroyed[index] = true; destroyed[index] = true; combo++
+                planetImpactID = index; planetShattered = true
+                planetEffectFor = if (firstClear) 3.0 else 1.8
+                if (firstClear) { firstMilestoneFor = 3.0; milestoneName = planet.name }
+                if (nodeEffect(Tech.ORBIT, 15)) { vx *= 1.25; vy = max(vy, 45.0) }
+                if (nodeEffect(Tech.ORBIT, 23)) { vx *= 1.4; vy = max(vy, 55.0) }
+                val bounty = planet.distance * .4 * (1 + level(Tech.ORBIT) * .12 + level(Tech.ASTRAL) * .08) *
+                    (if (nodeEffect(Tech.ORBIT, 7)) 1.35 else 1.0) * (if (nodeEffect(Tech.ORBIT, 23)) 1.5 else 1.0) *
+                    (1 + relicLevels[2] * .2) * (1 + relicLevels[9] * .1) *
+                    (if (hasClubPerk(10)) 1.4 else 1.0) * (if (hasClubPerk(9)) 1.35 else 1.0) *
+                    (if (twinLaunch) 2.0 else 1.0) * multiplier
+                earned += bounty; cash += bounty
+                message = "${planet.name} milestone! +$${format(bounty)}"; cue("planet")
                 save()
             }
             val maxCarries = 1 + (if (nodeEffect(Tech.PLANES, 15)) 1 else 0) + (if (nodeEffect(Tech.PLANES, 23)) 1 else 0)
             if (level(Tech.PLANES) > 0 && planeCarries < maxCarries && flightTime > 2.5 + planeCarries * 5.0 && altitude > 5) {
                 planeCarries++; planeSpriteFor = if (nodeEffect(Tech.PLANES, 7)) 2.5 else 1.8; cue("plane")
-                vx += (70 + level(Tech.PLANES) * 30) * multiplier * (if (nodeEffect(Tech.PLANES, 7)) 1.28 else 1.0) * (if (nodeEffect(Tech.PLANES, 8)) 1.15 else 1.0)
-                vy = max(vy, 35.0 + level(Tech.PLANES) * 8); message = "✈ Aircraft carry #$planeCarries!"
+                vx += (70 + level(Tech.PLANES) * 30) * multiplier * (1 + relicLevels[6] * .10) * (if (nodeEffect(Tech.PLANES, 7)) 1.28 else 1.0) * (if (nodeEffect(Tech.PLANES, 8)) 1.15 else 1.0)
+                vy = max(vy, 35.0 + level(Tech.PLANES) * 8); message = "✈ $aircraftName carry #$planeCarries!"
             }
             if (altitude <= 0) {
                 altitude = 0.0
@@ -351,7 +394,7 @@ internal class GameEngine(context: Context) {
                     vy = 0.0
                     val groundDrag = (0.7 / (1 + level(Tech.FRICTION) * 0.35)) *
                         (if (nodeEffect(Tech.FRICTION, 23)) .25 else if (nodeEffect(Tech.FRICTION, 15)) .55 else 1.0) *
-                        (if (electrifiedFor > 0) .08 else 1.0)
+                        (if (electrifiedFor > 0) .08 else 1.0) / (1 + relicLevels[4] * .08)
                     vx *= (1 - groundDrag * h).coerceAtLeast(0.0)
                     if (vx < 2 && nodeEffect(Tech.POWER, 15) && !secondSwingUsed) {
                         secondSwingUsed = true; vx = max(30.0, club.swing * .5); vy = 15.0; message = "↗ Second Swing!"
@@ -366,7 +409,7 @@ internal class GameEngine(context: Context) {
     private fun finish() {
         if (phase != Phase.FLYING) return
         phase = Phase.LANDED; speed = 0.0; altitude = 0.0
-        val payout = max(1.0, distance * (0.13 + combo * 0.03) * golfer.cashBonus * (if (twinLaunch) 2.0 else 1.0) * (if (hasClubPerk(13)) 1.25 else 1.0) * (if (nodeEffect(Tech.ASTRAL, 7)) 1.2 else 1.0) * (1 + level(Tech.ASTRAL) * 0.18 + (if (nodeEffect(Tech.POWER, 5)) 0.15 else 0.0) + (if (nodeEffect(Tech.POWER, 8) && charge > .85) .10 else 0.0) + (if (nodeEffect(Tech.ASTRAL, 23)) combo * .12 else 0.0)) * multiplier)
+        val payout = max(1.0, (20 + distance * (0.06 + combo * 0.015)) * golfer.cashBonus * (1 + relicLevels[1] * .18) * (1 + relicLevels[9] * .10) * (if (twinLaunch) 2.0 else 1.0) * (if (hasClubPerk(13)) 1.25 else 1.0) * (if (nodeEffect(Tech.ASTRAL, 7)) 1.2 else 1.0) * (1 + level(Tech.ASTRAL) * 0.18 + (if (nodeEffect(Tech.POWER, 5)) 0.15 else 0.0) + (if (nodeEffect(Tech.POWER, 8) && charge > .85) .10 else 0.0) + (if (nodeEffect(Tech.ASTRAL, 23)) combo * .12 else 0.0)) * multiplier)
         earned += payout; cash += payout; lifetimeDistance += distance; bestDistance = max(bestDistance, distance)
         message = "${format(distance)} m • +$${format(earned)}"; save(); cue("land")
     }
@@ -385,7 +428,10 @@ internal class GameEngine(context: Context) {
     fun upgradeClub() {
         val price = clubUpgradeCost()
         if (cash < price || clubLevels[equippedClub] >= 30) return
-        cash -= price; clubLevels[equippedClub]++; save(); cue("purchase")
+        cash -= price; clubLevels[equippedClub]++
+        if (clubLevels[equippedClub] % 10 == 0) clubMilestones[equippedClub] =
+            max(clubMilestones[equippedClub], clubLevels[equippedClub] / 10)
+        save(); cue("purchase")
     }
     fun buyGolfer(id: Int) {
         if (id !in golfers.indices || id != nextGolferUnlock || cash < golfers[id].cost) return
@@ -410,30 +456,29 @@ internal class GameEngine(context: Context) {
     }
     fun ascend() {
         if (!ascendAvailable) return
-        val gained = potentialRelics + if (nodeEffect(Tech.ASTRAL, 15)) 1 else 0
+        val gained = ascensionReward
         relics += gained; relicBank += gained; ascensions++
         cash = 0.0; lifetimeDistance = 0.0; bestDistance = 0.0; launches = 0; ownedClub = 0; equippedClub = 0
         clubLevels.indices.forEach { clubLevels[it] = 0 }; purchased.clear()
-        damage.indices.forEach { damage[it] = 0.0; destroyed[it] = false }
+        runDestroyed.indices.forEach { runDestroyed[it] = false }
         phase = Phase.READY; message = "Ascended! +$gained permanent relics"; save()
     }
     private fun save() {
         val json = JSONObject().apply {
             put("cash", cash); put("lifetime", lifetimeDistance); put("best", bestDistance); put("launches", launches)
-            put("adminVoucherUsed", adminVoucherUsed)
             put("club", ownedClub); put("equippedClub", equippedClub); put("relics", relics); put("ascensions", ascensions)
             put("rosterVersion", 2); put("relicBank", relicBank); put("selectedGolfer", selectedGolfer)
             put("selectedBall", selectedBall); put("ownedBalls", JSONArray(ownedBalls.toList()))
             put("ownedGolfers", JSONArray(ownedGolfers.toList())); put("ownedApparel", JSONArray(ownedApparel.toList()))
-            put("clubLevels", JSONArray(clubLevels)); put("nodes", JSONArray(purchased.toList()))
-            put("damage", JSONArray(damage)); put("destroyed", JSONArray(destroyed))
+            put("clubLevels", JSONArray(clubLevels)); put("clubMilestones", JSONArray(clubMilestones)); put("nodes", JSONArray(purchased.toList()))
+            put("discoveredRelics", JSONArray(discoveredRelics.toList())); put("relicLevels", JSONArray(relicLevels))
+            put("destroyed", JSONArray(destroyed))
         }
         prefs.edit().putString("save", json.toString()).apply(); revision++
     }
     private fun restore() {
         val json = runCatching { JSONObject(prefs.getString("save", "{}") ?: "{}") }.getOrDefault(JSONObject())
         cash = json.optDouble("cash", 0.0).takeIf(Double::isFinite)?.coerceAtLeast(0.0) ?: 0.0; lifetimeDistance = json.optDouble("lifetime", 0.0).takeIf(Double::isFinite)?.coerceAtLeast(0.0) ?: 0.0
-        adminVoucherUsed = json.optBoolean("adminVoucherUsed", false)
         bestDistance = json.optDouble("best", 0.0).takeIf(Double::isFinite)?.coerceAtLeast(0.0) ?: 0.0; launches = json.optInt("launches").coerceAtLeast(0)
         ownedClub = json.optInt("club").coerceIn(clubs.indices)
         equippedClub = json.optInt("equippedClub", ownedClub).coerceIn(0, ownedClub)
@@ -455,11 +500,18 @@ internal class GameEngine(context: Context) {
                 (0 until min(8, old.optInt(branch))).forEach { tier -> purchased.add("${Tech.entries[branch].name}-$tier") }
             }
         }
-        val hits = json.optJSONArray("damage") ?: JSONArray()
         val dead = json.optJSONArray("destroyed") ?: JSONArray()
-        clubLevels.indices.forEach { clubLevels[it] = levels.optInt(it).coerceIn(0, 30) }
+        val milestones = json.optJSONArray("clubMilestones") ?: JSONArray()
+        clubLevels.indices.forEach {
+            clubLevels[it] = levels.optInt(it).coerceIn(0, 30)
+            clubMilestones[it] = max(milestones.optInt(it), clubLevels[it] / 10).coerceIn(0, 3)
+        }
+        val discovered = json.optJSONArray("discoveredRelics") ?: JSONArray()
+        repeat(discovered.length()) { discovered.optInt(it).takeIf { id -> id in ascensionRelics.indices }?.let(discoveredRelics::add) }
+        val ranks = json.optJSONArray("relicLevels") ?: JSONArray()
+        relicLevels.indices.forEach { relicLevels[it] = ranks.optInt(it).coerceIn(0, 30) }
 
-        damage.indices.forEach { damage[it] = (hits.optDouble(it, 0.0).takeIf(Double::isFinite) ?: 0.0).coerceIn(0.0, planets[it].hp); destroyed[it] = dead.optBoolean(it) }
+        destroyed.indices.forEach { destroyed[it] = dead.optBoolean(it) }
         revision++
     }
 }

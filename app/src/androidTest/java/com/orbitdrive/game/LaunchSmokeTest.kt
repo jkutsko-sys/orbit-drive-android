@@ -50,7 +50,8 @@ class LaunchSmokeTest {
             assertEquals("Invalid voucher code", engine.redeemVoucher("wrong"))
             assertEquals("$10,000 added for testing", engine.redeemVoucher("admin"))
             assertEquals(10_000.0, engine.cash, 0.01)
-            assertEquals("ADMIN voucher already redeemed", GameEngine(context).redeemVoucher("ADMIN"))
+            assertEquals("$10,000 added for testing", GameEngine(context).redeemVoucher("ADMIN"))
+            assertEquals(20_000.0, GameEngine(context).cash, 0.01)
         } finally {
             if (prior == null) prefs.edit().remove("save").commit()
             else prefs.edit().putString("save", prior).commit()
@@ -80,6 +81,54 @@ class LaunchSmokeTest {
             assertEquals(fine.distance, coarse.distance, fine.distance * .02)
             fine.startCharge()
             assertEquals(Phase.CHARGING, fine.phase)
+        } finally {
+            if (prior == null) prefs.edit().remove("save").commit()
+            else prefs.edit().putString("save", prior).commit()
+        }
+    }
+
+    @Test fun relicDiscoveryAndClubMasterworkPersist() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val prefs = context.getSharedPreferences("orbit_drive_v1", android.content.Context.MODE_PRIVATE)
+        val prior = prefs.getString("save", null)
+        try {
+            prefs.edit().putString("save", JSONObject().put("cash", 1_000_000.0)
+                .put("relicBank", 100).put("best", 50_000.0).put("lifetime", 100_000.0).toString()).commit()
+            val game = GameEngine(context)
+            game.discoverRelic()
+            val id = game.ascensionRelics.indices.first(game::relicDiscovered)
+            game.upgradeRelic(id)
+            repeat(10) { game.upgradeClub() }
+            assertEquals(1, game.clubMilestoneCount(0))
+            assertEquals(1, game.relicLevel(id))
+            assertTrue(game.ascendAvailable)
+            game.ascend()
+            val restored = GameEngine(context)
+            assertEquals(1, restored.clubMilestoneCount(0))
+            assertTrue(restored.relicDiscovered(id))
+            assertEquals(1, restored.relicLevel(id))
+            assertEquals(0, restored.clubLevel(0))
+        } finally {
+            if (prior == null) prefs.edit().remove("save").commit()
+            else prefs.edit().putString("save", prior).commit()
+        }
+    }
+
+    @Test fun distanceMilestonePaysEveryShot() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val prefs = context.getSharedPreferences("orbit_drive_v1", android.content.Context.MODE_PRIVATE)
+        val prior = prefs.getString("save", null)
+        try {
+            prefs.edit().putString("save", JSONObject().put("club", 14).put("equippedClub", 14).toString()).commit()
+            val game = GameEngine(context)
+            repeat(2) {
+                game.startCharge(); game.tick(.5); game.release()
+                repeat(490) { if (game.phase == Phase.FLYING) game.tick(.05) }
+                assertEquals(Phase.LANDED, game.phase)
+                assertTrue(game.distance >= game.planets[0].distance)
+                assertTrue(game.isDestroyed(0))
+                assertTrue(game.earned > game.planets[0].distance * .4)
+            }
         } finally {
             if (prior == null) prefs.edit().remove("save").commit()
             else prefs.edit().putString("save", prior).commit()

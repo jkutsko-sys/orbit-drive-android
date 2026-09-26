@@ -45,3 +45,7 @@ The eight research branches contain three effect keystones each. Clubs now have 
 Shots now accelerate through the existing physics timeline as they travel farther and finish within 24.5 seconds of active gameplay. The physics still integrates distance, drag, bounce, impacts and cash in the same simulation units; this changes playback duration rather than the club's reach. The emulator suite checks a long shot against both fine and coarse frame intervals and confirms that the next shot becomes available.
 
 The Settings gear sits beside the cash total on the Range screen. An instrumented UI test verifies that the dialog opens and its voucher controls are accessible.
+
+## Preview 0.8
+
+Planets are distance checkpoints rather than health encounters: crossing one gives a bounty on each shot, while the first clear plays a longer cinematic and remains recorded across ascensions. The former Orbital Science branch is now Milestone Mapping; existing node IDs and purchases migrate intact. Flightpath aircraft progress from paper glider through propeller aircraft, jets, stealth bomber, rocket, and starship. Club purchase prices are spread farther apart and levels 10, 20, and 30 permanently grant a 20% power step for that club, even when its levels reset at ascension. Base shot income and relic power progression are rebalanced; ten randomly discoverable relic powers can be ranked up with increasingly expensive relic costs, including a bonus to relics earned on ascension. The preview `ADMIN` voucher can be redeemed repeatedly for $10,000 each time.
