@@ -22,13 +22,13 @@ internal enum class Tech(val title: String, val description: String, val baseCos
     GRAVITY("Atmosphere", "Flight and gravity", 90.0, 24),
     BOUNCE("Rebound", "Ground strikes", 60.0, 24),
     FRICTION("Surface", "Roll and terrain", 45.0, 24),
-    LIGHTNING("Stormcalling", "Active lightning", 180.0, 24),
+    LIGHTNING("Abilities", "Four specialized ability paths", 180.0, 97),
     PLANES("Flightpath", "Aircraft carries", 260.0, 24),
     ORBIT("Milestone Mapping", "Distance milestones and bounties", 900.0, 24),
     ASTRAL("Astral Forge", "Deep space rewards", 2000.0, 24)
 }
 internal data class ResearchNode(val id: String, val branch: Tech, val tier: Int, val name: String,
-    val effect: String, val cost: Double, val requires: List<String>)
+    val effect: String, val cost: Double, val requires: List<String>, val ability: FlightAbility? = null)
 internal object ResearchTree {
     private val names = listOf(
         listOf("Grip Tape", "Tempo Drill", "Weighted Shaft", "Hip Rotation", "Explosive Release", "Champion's Rhythm", "Railgun Swing", "Singularity Strike", "Sweet Spot Map", "Quick Hands", "Long Lever", "Power Coil", "Whip Crack", "Heavy Finish", "Launch Window", "Second Swing", "Deep Flex", "Arc Timing", "Torque Chamber", "Hammer Drop", "Slingshot Stance", "Skyline Release", "Titan Grip", "Overdrive Form"),
@@ -45,7 +45,7 @@ internal object ResearchTree {
         listOf("+loft", "reduced gravity", "reduced drag", "+midflight lift", "reduced gravity", "+flight time", "reduced gravity", "KEYSTONE: deep-space lift", "thermal lift on descent", "reduced gravity", "reduced air drag", "+glide lift", "longer hang time", "reduced gravity", "+midflight lift", "KEYSTONE: lightning reverses fall briefly", "+glide lift", "reduced gravity", "reduced air drag", "longer hang time", "+glide lift", "reduced gravity", "reduced air drag", "KEYSTONE: skyhook lift at apex"),
         listOf("+bounce height", "+rebound speed", "+bounce height", "+ground skip", "+bounce height", "+impact speed", "+bounce height", "KEYSTONE: comet ricochet", "first landing gets an extra skip", "+bounce height", "+rebound speed", "+bounce height", "+rebound speed", "+bounce height", "+impact speed", "KEYSTONE: landing shockwave adds cash", "+bounce height", "+rebound speed", "+bounce height", "+rebound speed", "+bounce height", "+rebound speed", "+bounce height", "KEYSTONE: pogo rebounds last longer"),
         listOf("reduced drag", "+rolling distance", "reduced drag", "+ground speed", "+rolling distance", "+speed retention", "reduced drag", "KEYSTONE: glide wake", "+roll speed on first contact", "reduced drag", "+roll speed", "reduced drag", "+rolling distance", "reduced drag", "+roll speed", "KEYSTONE: roll coasts farther", "reduced drag", "+roll speed", "reduced drag", "+rolling distance", "reduced drag", "+roll speed", "reduced drag", "KEYSTONE: near-frictionless final roll"),
-        listOf("strengthen lightning ability", "+lightning impulse", "+one lightning charge", "+lightning impulse", "+lightning lift", "+one lightning charge", "+lightning impulse", "KEYSTONE: lightning arcs again", "+charged ball duration", "+lightning impulse", "+charged ball duration", "+lightning lift", "+lightning impulse", "+charged ball duration", "+lightning impulse", "KEYSTONE: electrify ball, melt friction and shatter obstacles", "+charged ball duration", "+lightning impulse", "+charged ball duration", "+lightning lift", "+charged ball duration", "+lightning impulse", "+charged ball duration", "KEYSTONE: supercell chain burst"),
+        listOf("unlock Lightning", "+lightning impulse", "+one lightning charge", "+lightning impulse", "+lightning lift", "+one lightning charge", "+lightning impulse", "KEYSTONE: lightning arcs again", "+charged ball duration", "+lightning impulse", "+charged ball duration", "+lightning lift", "+lightning impulse", "+charged ball duration", "+lightning impulse", "KEYSTONE: electrify ball, melt friction and shatter obstacles", "+charged ball duration", "+lightning impulse", "+charged ball duration", "+lightning lift", "+charged ball duration", "+lightning impulse", "+charged ball duration", "KEYSTONE: supercell chain burst"),
         listOf("unlock aircraft", "+carry speed", "+carry altitude", "+carry speed", "+carry altitude", "+carry speed", "+carry speed", "KEYSTONE: orbital carrier", "+first plane tow duration", "+carry speed", "+carry altitude", "+carry speed", "+carry altitude", "+carry speed", "+aircraft signal", "KEYSTONE: second plane carry", "+carry speed", "+carry altitude", "+carry speed", "+carry speed", "+carry altitude", "+carry speed", "+carry altitude", "KEYSTONE: third escort carry"),
         listOf("+checkpoint bounty", "+checkpoint bounty", "+distance reward", "+checkpoint bounty", "+checkpoint bounty", "+checkpoint bounty", "+distance reward", "KEYSTONE: charted bounties surge", "+checkpoint bounty", "+checkpoint bounty", "+distance reward", "+checkpoint bounty", "+checkpoint bounty", "+checkpoint bounty", "+distance reward", "KEYSTONE: checkpoint slingshot", "+checkpoint bounty", "+checkpoint bounty", "+distance reward", "+checkpoint bounty", "+checkpoint bounty", "+checkpoint bounty", "+distance reward", "KEYSTONE: horizon bonus and comet boost"),
         listOf("+distance cash", "+relic power", "+planet bounty", "+distance cash", "+relic power", "+planet bounty", "+distance cash", "KEYSTONE: infinite yield", "+distance cash", "+planet bounty", "+distance cash", "+planet bounty", "+distance cash", "+planet bounty", "+distance cash", "KEYSTONE: extra ascension relic", "+distance cash", "+planet bounty", "+distance cash", "+planet bounty", "+distance cash", "+planet bounty", "+distance cash", "KEYSTONE: combo cash crescendo")
@@ -73,15 +73,16 @@ internal object ResearchTree {
                 else -> listOf("${branch.name}-21", "${branch.name}-22")
             }
             ResearchNode("${branch.name}-$tier", branch, tier, names[branch.ordinal][tier], effects[branch.ordinal][tier],
-                branch.baseCost * 2.15.pow(tier), requires)
+                branch.baseCost * 2.15.pow(tier), if (branch == Tech.LIGHTNING && tier == 0) listOf(AbilityResearch.HUB) else requires, if (branch == Tech.LIGHTNING) FlightAbility.LIGHTNING else null)
         }
     }
+    .plus(AbilityResearch.extraNodes())
     val byId = all.associateBy { it.id }
     fun nodes(branch: Tech) = all.filter { it.branch == branch }
 }
 internal enum class Phase { READY, CHARGING, FLYING, LANDED }
 
-internal class GameEngine(context: Context, val expedition: Boolean = false, sharedEngagement: EngagementState? = null) {
+internal class GameEngine(context: Context, val expedition: Boolean = false, sharedEngagement: EngagementState? = null, private val abilitySource: GameEngine? = null) {
     val engagement = sharedEngagement ?: EngagementState(context)
     private val prefs = context.getSharedPreferences(if (expedition) "orbit_expedition_v1" else "orbit_drive_v1", Context.MODE_PRIVATE)
     private val previewBuild = context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
@@ -247,14 +248,33 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
     var comboMessage by mutableStateOf(""); private set
     var comboFlashFor by mutableStateOf(0.0); private set
     var ghostTarget by mutableStateOf(0.0); private set
-    private val abilityUsed = androidx.compose.runtime.mutableStateListOf(false, false, false, false)
+    private val abilityUses = androidx.compose.runtime.mutableStateListOf(0, 0, 0, 0)
+    var airliftFor by mutableStateOf(0.0); private set
+    private var airTapCooldown = 0.0
+    private var airTaps = 0
+    private var airExtensions = 0.0
+    private var afterburnerFor = 0.0
+    val airliftDuration get() = 5.0 + listOf(2,5,10,14,18,22).count { abilityNode(FlightAbility.AIRLIFT,it) }
+    val forwardSpeed get() = vx
+    fun abilityNode(ability: FlightAbility, tier: Int) = !expedition && "${AbilityResearch.prefix(ability)}-$tier" in purchased
+    fun abilityUnlocked(ability: FlightAbility): Boolean = if (expedition) abilitySource?.abilityUnlocked(ability) == true else abilityNode(ability,0)
+    fun equipAbility(slot: Int, ability: FlightAbility) {
+        if (slot in 0..1 && phase != Phase.FLYING && phase != Phase.CHARGING && abilityUnlocked(ability)) engagement.select(slot,ability)
+    }
+    private fun abilityCash(value: Double) { if (!expedition) { cash += value; earned += value } }
     private var bounceArmed = false
     private var thunderArmed = false
     private var usedLightning = false
     private var shotClears = 0
     private var cargoBall = false
     private var shotPerfect = false
-    fun abilityCharges(ability: FlightAbility): Int = if (ability == FlightAbility.LIGHTNING) lightningCharges else if (abilityUsed[ability.ordinal]) 0 else 1
+    fun abilityCharges(ability: FlightAbility): Int {
+        if (!abilityUnlocked(ability)) return 0
+        if (ability == FlightAbility.LIGHTNING) return lightningCharges
+        if (ability == FlightAbility.AIRLIFT && airliftFor > 0) return 1
+        val maximum = if (ability == FlightAbility.AIRLIFT) 1 else 1 + listOf(4,14).count { abilityNode(ability,it) }
+        return (maximum - abilityUses[ability.ordinal]).coerceAtLeast(0)
+    }
     private fun showCombo(id: Int) {
         comboMessage = engagement.comboNames[id]; comboFlashFor = 2.2
         engagement.discoverCombo(id); cue("purchase")
@@ -262,20 +282,53 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
     fun useAbility(ability: FlightAbility) {
         if (phase != Phase.FLYING || ability !in engagement.slots || abilityCharges(ability) <= 0) return
         if (ability == FlightAbility.LIGHTNING) { lightning(); return }
-        abilityUsed[ability.ordinal] = true
-        when (ability) {
-            FlightAbility.BOUNCE -> { bounceArmed = true; message = "Bounce armed for the next landing" }
-            FlightAbility.ROCKET -> {
-                val timed = planeSpriteFor > 0
-                vx += 85 * multiplier * (if (expedition) 1.0 else 1 + engagement.facilities[3] * .03) * (if (timed) 1.35 else 1.0)
-                vy += 18; rocketFlashFor = 1.2; cue("plane")
-                if (timed) showCombo(1) else message = "Rocket ignition!"
+        fun n(tier: Int) = abilityNode(ability,tier)
+        if (ability == FlightAbility.AIRLIFT) {
+            if (airliftFor <= 0) {
+                abilityUses[ability.ordinal]++; airliftFor = airliftDuration; airTaps = 0; airExtensions = 0.0
+                if (n(12)) vy = max(0.0,vy)
             }
-            FlightAbility.GRAVITY -> {
-                gravityPulseFor = 4.0; vy = max(vy, 20.0); message = "Gravity pulse!"
-                if (!expedition && relicLevels[3] > 0 && relicLevels[4] > 0) { electrifiedFor = max(electrifiedFor,4.0); showCombo(3) }
+            if (airTapCooldown > 0) return
+            airTapCooldown = if (n(8)) .05 else .07
+            airTaps++
+            var lift = 6.0 + (if (n(1)) 2 else 0) + (if (n(6)) 2 else 0) + (if (n(13)) 3 else 0) + (if (n(19)) 3 else 0)
+            if (n(4) && airTaps % 3 == 0) lift *= 2
+            altitude += lift + if (n(15) && airTaps % 5 == 0) 30 else 0
+            vy = max(0.0,vy) + 12 + listOf(3,9,16).count(::n) * 5
+            if (n(21) && airTaps % 3 == 0) vx *= 1.02
+            if (n(23) && airTaps % 5 == 0 && airExtensions < 3) { airliftFor += .25; airExtensions += .25 }
+            if (n(11)) abilityCash(if (n(17)) 10.0 else 5.0)
+            message = "↑ AIRLIFT • $airTaps taps • ${"%.1f".format(airliftFor)}s"
+        } else {
+            abilityUses[ability.ordinal]++
+            when (ability) {
+                FlightAbility.ROCKET -> {
+                    val timed = planeSpriteFor > 0
+                    var impulse = 85.0 + (if (n(1)) 15 else 0) + (if (n(6)) 15 else 0) + (if (n(9)) 20 else 0) + (if (n(16)) 20 else 0) + (if (n(22)) 25 else 0)
+                    if (n(5) && altitude > 100) impulse *= 1.2
+                    if (n(15) && altitude > 1000) impulse *= 1.4
+                    if (n(21) && vy > 0) impulse *= 1.1
+                    if (n(23)) impulse *= 1 + (abilityUses[ability.ordinal]-1) * .25
+                    vx += impulse * multiplier * (if (expedition) 1.0 else 1 + engagement.facilities[3] * .03) * (if (timed) { if (n(13)) 1.6 else 1.35 } else 1.0)
+                    vy += 18 + (if (n(2)) 10 else 0) + (if (n(10)) 15 else 0) + (if (n(19)) 20 else 0)
+                    if (n(7)) afterburnerFor = 2.0 + (if (n(8)) 1 else 0) + (if (n(17)) 1 else 0)
+                    if (n(3) || n(20)) electrifiedFor = max(electrifiedFor,(if (n(3)) 2.0 else 0.0)+(if (n(20)) 2.0 else 0.0))
+                    if (n(11)) abilityCash(if (n(18)) 100.0 else 50.0)
+                    rocketFlashFor = 1.2; cue("plane")
+                    if (timed) showCombo(1) else message = "Rocket ignition!"
+                }
+                FlightAbility.GRAVITY -> {
+                    if (n(15) && vy < 0) vx += min(200.0,abs(vy)*.2)
+                    gravityPulseFor = 4.0 + listOf(1,6,10,16,20).count(::n)
+                    vy = max(vy,if (n(3)) 35.0 else 20.0) + (if (n(9)) 10 else 0) + (if (n(17)) 15 else 0)
+                    altitude += (if (n(12)) 20.0 else 0.0) + (if (n(19)) 30.0 else 0.0)
+                    if (n(11) || n(22)) electrifiedFor = max(electrifiedFor,(if (n(11)) 2.0 else 0.0)+(if (n(22)) 2.0 else 0.0))
+                    if (n(5)) abilityCash((if (n(13)) 80.0 else 40.0)+(if (n(21)) 80.0 else 0.0))
+                    message = "Gravity pulse!"
+                    if (!expedition && relicLevels[3] > 0 && relicLevels[4] > 0) { electrifiedFor = max(electrifiedFor,4.0); showCombo(3) }
+                }
+                else -> Unit
             }
-            else -> Unit
         }
         speed = hypot(vx,vy)
     }
@@ -297,7 +350,7 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
     val potentialRelics get() = max(0, (log10(max(1.0, bestDistance / 10000)) * 3 + log10(max(1.0, lifetimeDistance / 10000)) * 2).toInt())
     val ascendAvailable get() = bestDistance >= 45000 && potentialRelics > 0 && phase != Phase.FLYING
     fun level(tech: Tech): Int {
-        if (!expedition) return ResearchTree.nodes(tech).count { it.id in purchased }
+        if (!expedition) return ResearchTree.nodes(tech).count { it.id in purchased && (tech != Tech.LIGHTNING || it.ability == FlightAbility.LIGHTNING) }
         return when (engagement.weekRule) {
             0 -> if (tech == Tech.GRAVITY) 18 else 0
             1 -> if (tech == Tech.BOUNCE || tech == Tech.FRICTION) 12 else 0
@@ -336,12 +389,13 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
         phase = Phase.FLYING; distance = 0.0; previousDistance = 0.0; altitude = 1.0; flightTime = 0.0; shotElapsed = 0.0
         bounceCount = 0; combo = 0; earned = 0.0; planeCarries = 0; secondSwingUsed = false; skyhookUsed = false; deepLiftUsed = false
         ghostTarget = if (expedition) engagement.expeditionBest else bestDistance
-        for (i in abilityUsed.indices) abilityUsed[i] = false
+        for (i in abilityUses.indices) abilityUses[i] = 0
+        airliftFor = 0.0; airTapCooldown = 0.0; afterburnerFor = 0.0
         usedLightning = false; shotClears = 0; cargoBall = false; bounceArmed = false; thunderArmed = false
         gravityPulseFor = 0.0; rocketFlashFor = 0.0; comboFlashFor = 0.0
         runDestroyed.indices.forEach { runDestroyed[it] = false }
         brokenObstacles.clear(); electrifiedFor = 0.0; lightningFlashFor = 0.0; planeSpriteFor = 0.0; planetEffectFor = 0.0; planetImpactID = null
-        lightningCharges = if (expedition && engagement.weekRule == 0) 0 else 1 +
+        lightningCharges = if (!abilityUnlocked(FlightAbility.LIGHTNING) || (expedition && engagement.weekRule == 0)) 0 else 1 +
             (if (nodeEffect(Tech.LIGHTNING, 2)) 1 else 0) + (if (nodeEffect(Tech.LIGHTNING, 5)) 1 else 0) +
             (if (hasClubPerk(7)) 1 else 0) + (if (expedition && engagement.weekRule == 2) 2 else 0)
         val perfect = charge > (if (hasClubPerk(2)) .76 else .85)
@@ -352,7 +406,7 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
         launches++; save(); cue("swing"); message = if (perfect) "PERFECT STRIKE!" else "Ball away!"
     }
     fun lightning() {
-        if (phase != Phase.FLYING || lightningCharges <= 0) return
+        if (phase != Phase.FLYING || !abilityUnlocked(FlightAbility.LIGHTNING) || lightningCharges <= 0) return
         usedLightning = true
         if (vy < 0 && altitude < 35) thunderArmed = true
         lightningCharges--
@@ -370,6 +424,12 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
     }
     fun tick(step: Double) {
         val dt = step.coerceIn(0.0, 0.5)
+        if (phase == Phase.FLYING) {
+            val wasLifting = airliftFor > 0
+            airliftFor = (airliftFor - dt).coerceAtLeast(0.0)
+            airTapCooldown = (airTapCooldown - dt).coerceAtLeast(0.0)
+            if (wasLifting && airliftFor == 0.0 && abilityNode(FlightAbility.AIRLIFT,20)) vy = max(vy,25.0)
+        }
         rocketFlashFor = (rocketFlashFor - dt).coerceAtLeast(0.0)
         comboFlashFor = (comboFlashFor - dt).coerceAtLeast(0.0)
         lightningFlashFor = (lightningFlashFor - dt).coerceAtLeast(0.0)
@@ -391,9 +451,13 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
         while (phase == Phase.FLYING && flightTime + 1e-9 < targetFlightTime) {
             val h = min(0.0125, targetFlightTime - flightTime)
             flightTime += h; previousDistance = distance
+            val pulsing = gravityPulseFor > 0
             gravityPulseFor = (gravityPulseFor - h).coerceAtLeast(0.0)
+            if (pulsing && gravityPulseFor == 0.0 && abilityNode(FlightAbility.GRAVITY,23)) vx *= 1.15
+            afterburnerFor = (afterburnerFor - h).coerceAtLeast(0.0)
+            if (afterburnerFor > 0) vx += 35 * h * multiplier
             electrifiedFor = (electrifiedFor - h).coerceAtLeast(0.0)
-            vy -= 45 / (1 + level(Tech.GRAVITY) * 0.24 + (if (hasClubPerk(8)) .35 else 0.0) + relicLevels[3] * .06) * h * (if (gravityPulseFor > 0) .2 else 1.0)
+            vy -= 45 / (1 + level(Tech.GRAVITY) * 0.24 + (if (hasClubPerk(8)) .35 else 0.0) + relicLevels[3] * .06) * h * (if (gravityPulseFor > 0) { if (abilityNode(FlightAbility.GRAVITY,7)) 0.0 else if (abilityNode(FlightAbility.GRAVITY,2)) .1 else .2 } else if (airliftFor > 0 && abilityNode(FlightAbility.AIRLIFT,7)) .25 else 1.0)
             if (nodeEffect(Tech.GRAVITY, 3) && flightTime in 1.0..2.0) vy += 3.0 * h
             if (nodeEffect(Tech.GRAVITY, 8) && vy < 0 && altitude > 0) vy += 4.0 * h
             if (!deepLiftUsed && nodeEffect(Tech.GRAVITY, 7) && distance > 7000 && vy < 0) {
@@ -403,7 +467,7 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
                 vy = 90.0; skyhookUsed = true; message = "☁ Skyhook lifts the ball!"
             }
             val airDrag = max(0.00005, 0.0016 - level(Tech.FRICTION) * 0.000075) * (if (hasClubPerk(5)) .7 else 1.0)
-            vx *= (1 - airDrag * h * (if (electrifiedFor > 0) .08 else 1.0)).coerceAtLeast(0.0)
+            vx *= (1 - (if (airliftFor > 0 || (gravityPulseFor > 0 && abilityNode(FlightAbility.GRAVITY,8)) || (afterburnerFor > 0 && abilityNode(FlightAbility.ROCKET,12))) 0.0 else airDrag) * h * (if (electrifiedFor > 0) .08 else 1.0)).coerceAtLeast(0.0)
             distance += vx * h; altitude += vy * h
             obstacles.forEachIndexed { obstacleIndex, obstacle ->
                 if (previousDistance < obstacle.at && distance >= obstacle.at && altitude >= obstacle.height) shotClears++
@@ -432,7 +496,7 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
                     (if (nodeEffect(Tech.ORBIT, 7)) 1.35 else 1.0) * (if (nodeEffect(Tech.ORBIT, 23)) 1.5 else 1.0) *
                     (1 + relicLevels[2] * .2) * (1 + relicLevels[9] * .1) *
                     (if (hasClubPerk(10)) 1.4 else 1.0) * (if (hasClubPerk(9)) 1.35 else 1.0) *
-                    (if (twinLaunch) 2.0 else 1.0) * multiplier
+                    (if (twinLaunch) 2.0 else 1.0) * multiplier * (if (gravityPulseFor > 0 && abilityNode(FlightAbility.GRAVITY,18)) 1.25 else 1.0)
                 earned += bounty; cash += bounty
                 message = "${planet.name} milestone! +$${format(bounty)}"; cue("planet")
                 save()
@@ -462,13 +526,13 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
                 if (landedImpact && nodeEffect(Tech.FRICTION, 8) && bounceCount == 1) vx *= 1.08
                 if (abs(vy) > 11 && bounceCount < (if (nodeEffect(Tech.BOUNCE, 23)) 60 else 28)) {
                     vy = abs(vy) * restitution
-                    vx *= max(0.6, 0.82 + level(Tech.FRICTION) * 0.012 + (if (nodeEffect(Tech.BOUNCE, 3)) 0.03 else 0.0))
+                    vx *= if (airliftFor > 0) 1.0 else max(0.6, 0.82 + level(Tech.FRICTION) * 0.012 + (if (nodeEffect(Tech.BOUNCE, 3)) 0.03 else 0.0))
                 } else {
                     vy = 0.0
                     val groundDrag = (0.7 / (1 + level(Tech.FRICTION) * 0.35)) *
                         (if (nodeEffect(Tech.FRICTION, 23)) .25 else if (nodeEffect(Tech.FRICTION, 15)) .55 else 1.0) *
                         (if (electrifiedFor > 0) .08 else 1.0) / (1 + relicLevels[4] * .08)
-                    vx *= (1 - groundDrag * h).coerceAtLeast(0.0)
+                    vx *= (1 - (if (airliftFor > 0) 0.0 else groundDrag) * h).coerceAtLeast(0.0)
                     if (vx < 2 && nodeEffect(Tech.POWER, 15) && !secondSwingUsed) {
                         secondSwingUsed = true; vx = max(30.0, club.swing * .5); vy = 15.0; message = "↗ Second Swing!"
                     } else if (vx < 2 || flightTime >= 240) finish()
@@ -490,7 +554,12 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
     }
     fun buyNode(node: ResearchNode) {
         if (owns(node) || !unlocked(node) || cash < node.cost) return
-        cash -= node.cost; purchased.add(node.id); save(); cue("purchase")
+        cash -= node.cost; purchased.add(node.id)
+        if (node.ability != null && node.tier == 0) {
+            val slot = engagement.slots.indexOfFirst { !abilityUnlocked(it) }
+            if (slot >= 0) engagement.select(slot,node.ability)
+        }
+        save(); cue("purchase")
     }
     fun buyClub(id: Int) {
         if (id != ownedClub + 1 || id !in clubs.indices || cash < clubs[id].cost) return
@@ -576,6 +645,7 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
                 (0 until min(8, old.optInt(branch))).forEach { tier -> purchased.add("${Tech.entries[branch].name}-$tier") }
             }
         }
+        if (purchased.any { it.startsWith("LIGHTNING-") }) purchased.add(AbilityResearch.HUB)
         val dead = json.optJSONArray("destroyed") ?: JSONArray()
         val milestones = json.optJSONArray("clubMilestones") ?: JSONArray()
         clubLevels.indices.forEach {

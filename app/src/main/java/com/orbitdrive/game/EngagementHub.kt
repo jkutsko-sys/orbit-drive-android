@@ -49,12 +49,14 @@ import androidx.compose.ui.platform.testTag
                             }
                         }
                         1 -> {
-                            Text("Equip two abilities. Each gets one use per shot; lightning upgrades add charges. Time abilities to discover combos.")
+                            Text("Equip two abilities. Unlock each ability in Research first. Each path improves its uses and effects. Time abilities to discover combos.")
                             repeat(2) { slot -> HubCard {
-                                Text("SLOT ${slot + 1}: ${state.slots[slot].title}", fontWeight = FontWeight.Bold)
+                                Text("SLOT ${slot + 1}: ${if (game.abilityUnlocked(state.slots[slot])) state.slots[slot].title else "LOCKED"}", fontWeight = FontWeight.Bold)
                                 FlightAbility.entries.forEach { ability ->
-                                    OutlinedButton(onClick = { state.select(slot, ability) }, enabled = canChange, modifier = Modifier.fillMaxWidth()) {
-                                        Column { Text("${ability.icon} ${ability.title}${if (state.slots[slot] == ability) " • EQUIPPED" else ""}"); Text(ability.description, fontSize = 11.sp) }
+                                    OutlinedButton(onClick = { game.equipAbility(slot, ability) }, enabled = canChange && game.abilityUnlocked(ability), modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.outlinedButtonColors(containerColor = abilityBackground(ability), contentColor = abilityTint(ability))) {
+                                        AbilityGlyph(ability, Modifier.size(36.dp)); Spacer(Modifier.width(10.dp))
+                                        Column(Modifier.weight(1f)) { Text("${ability.title}${if (!game.abilityUnlocked(ability)) " • RESEARCH TO UNLOCK" else if (state.slots[slot] == ability) " • EQUIPPED" else ""}"); Text(ability.description, fontSize = 11.sp) }
                                     }
                                 }
                             } }

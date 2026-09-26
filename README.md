@@ -72,3 +72,11 @@ Open **CONTRACTS • HOME** on the Range screen for:
 - Three collectible ball trails and persistent expedition medals. Range buildings evolve across four eras, and a gold personal-best marker shows the distance to beat.
 
 Existing 24.5-second active-flight pacing continues. The ADMIN testing voucher remains repeatable for $100,000 in debuggable builds. No analytics, online account or Google Play cloud save was added in this update.
+
+## Labs 0.12 — Ability Academy
+
+Research now contains 265 purchasable nodes. Abilities replaces Stormcalling as the parent branch, with an Academy gate and four independent 24-node paths, each with three keystones. Existing purchased Lightning nodes migrate intact and unlock the Academy. An ability must be researched before it can be equipped or used; expeditions share the main range's unlocks but retain fixed equipment and no ability research bonuses.
+
+Bounce's slot becomes **Airlift**: activate it, then tap repeatedly for five real gameplay seconds to raise the ball without sacrificing horizontal velocity to the taps. Its tree extends the window, rewards tap rhythms, reduces gravity and adds altitude bursts. Rocket research adds extra tanks, sustained afterburner and orbital ignition bonuses. Gravity research adds zero gravity, additional charges, falling-velocity conversion and a pulse-end slingshot. Upgrades are described individually in Research.
+
+Contracts and abilities have colored, illustrated buttons. Launch controls are taller with their labels shifted upward. This remains the separate Labs app and updates v0.11's save; the original v0.10 app and rollback branch are preserved.

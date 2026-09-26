@@ -11,7 +11,7 @@ import java.time.temporal.TemporalAdjusters
 
 internal enum class FlightAbility(val title: String, val icon: String, val description: String) {
     LIGHTNING("Lightning", "ϟ", "Adds velocity. Time it just before landing for Thunder Skip."),
-    BOUNCE("Bounce", "◆", "Arms a powerful next bounce. Best just before ground contact."),
+    AIRLIFT("Airlift", "↑", "Tap rapidly for 5 seconds to gain altitude without losing forward speed."),
     ROCKET("Rocket", "↑", "Forward ignition. Fire during an aircraft carry for Slingshot Launch."),
     GRAVITY("Gravity", "☁", "Brief lift and reduced gravity for four flight seconds.")
 }
@@ -22,7 +22,7 @@ internal class EngagementState(context: Context, private val today: () -> LocalD
     val facilities = mutableStateListOf(0, 0, 0, 0)
     val facilityNames = listOf("Clubhouse", "Workshop", "Trophy Room", "Launch Pad")
     val facilityEffects = listOf("+2% shot cash per level", "+2% launch power per level", "+1 ticket per contract per level", "+3% rocket impulse per level")
-    val slots = mutableStateListOf(FlightAbility.LIGHTNING, FlightAbility.BOUNCE)
+    val slots = mutableStateListOf(FlightAbility.LIGHTNING, FlightAbility.AIRLIFT)
     val contractRounds = mutableStateListOf(0, 0, 0)
     val contractProgress = mutableStateListOf(0, 0, 0)
     val discoveries = mutableStateListOf(false, false, false, false)

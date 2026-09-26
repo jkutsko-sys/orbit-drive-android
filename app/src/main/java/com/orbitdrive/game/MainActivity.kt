@@ -66,7 +66,7 @@ class MainActivity : ComponentActivity() {
             previousHandler?.uncaughtException(thread, error)
         }
         val game = GameEngine(this)
-        val expedition = GameEngine(this, true, game.engagement)
+        val expedition = GameEngine(this, true, game.engagement, game)
         audio = AudioDirector(this)
         setContent { OrbitApp(game, expedition, audio, crashPrefs.getString("last", null)) { crashPrefs.edit().remove("last").apply() } }
     }
@@ -139,7 +139,13 @@ class MainActivity : ComponentActivity() {
             Column {
                 Text("ORBIT DRIVE", fontSize = 25.sp, fontWeight = FontWeight.Black, color = Color.White)
                 Text(if (game.expedition) "WEEKLY EXPEDITION" else "THE INFINITE RANGE", fontSize = 10.sp, letterSpacing = 2.sp, color = Mint)
-                TextButton(onClick = openHub, modifier = Modifier.height(32.dp).testTag("clubhouse")) { Text("CONTRACTS • HOME", fontSize = 10.sp) }
+                Button(onClick = openHub, modifier = Modifier.heightIn(min = 40.dp).testTag("clubhouse"),
+                    shape = RoundedCornerShape(12.dp), contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xff234d51), contentColor = Mint)) {
+                    Icon(Icons.Default.Assignment, null, Modifier.size(18.dp), tint = Color(0xffffd47a))
+                    Spacer(Modifier.width(6.dp))
+                    Text("CONTRACTS • HOME", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
             }
             Column(horizontalAlignment = Alignment.End) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -198,38 +204,42 @@ class MainActivity : ComponentActivity() {
         }
         Text(game.message, Modifier.fillMaxWidth(), color = Mint, fontSize = 13.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 1)
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
+            Column(Modifier.weight(1f).padding(end = 6.dp)) {
                 Text(game.club.name.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Text("${game.launches} swings • ${game.relics} relics", fontSize = 10.sp, color = Muted)
             }
             if (game.phase == Phase.FLYING) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     game.engagement.slots.forEach { ability ->
-                        Button(onClick = { game.useAbility(ability) }, enabled = game.abilityCharges(ability) > 0,
-                            modifier = Modifier.height(60.dp).width(80.dp), contentPadding = PaddingValues(3.dp)) {
+                        val ready = game.abilityCharges(ability) > 0
+                        Button(onClick = { game.useAbility(ability) }, enabled = ready,
+                            modifier = Modifier.heightIn(min = 78.dp).width(82.dp), shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = abilityBackground(ability), contentColor = abilityTint(ability),
+                                disabledContainerColor = Color(0xff202b3b), disabledContentColor = Muted), contentPadding = PaddingValues(4.dp)) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("${ability.icon} ${game.abilityCharges(ability)}", fontWeight = FontWeight.Black)
-                                Text(ability.title, fontSize = 10.sp)
+                                AbilityGlyph(ability, Modifier.size(28.dp))
+                                Text(ability.title, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text(if (!game.abilityUnlocked(ability)) "LOCKED" else if (ability == FlightAbility.AIRLIFT && game.airliftFor > 0) "TAP ${"%.1f".format(game.airliftFor)}s" else "${game.abilityCharges(ability)} USE", fontSize = 9.sp)
                             }
                         }
                     }
                 }
             } else {
                 // Press starts charging immediately; lift releases. The pointer gesture also handles short taps.
-                Box(Modifier.width(170.dp).height(65.dp).background(Mint, RoundedCornerShape(15.dp)).testTag("launch")
+                Box(Modifier.width(170.dp).heightIn(min = 80.dp).background(Mint, RoundedCornerShape(15.dp)).testTag("launch")
                     .pointerInput(game) {
                         detectTapGestures(onPress = {
                             game.startCharge()
                             try { tryAwaitRelease() } finally { game.release() }
                         })
                     }, contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(Modifier.padding(top = 4.dp, bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             LinearProgressIndicator(progress = { game.charge.toFloat() }, modifier = Modifier.width(78.dp).height(5.dp), color = Color(0xfffeac5b), trackColor = Night.copy(alpha = .2f))
                             Text("PWR ${game.format(game.projectedSwingPower)}", color = Night, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.testTag("swingPower"))
                         }
                         Text("HOLD & RELEASE", color = Night, fontSize = 9.sp, fontWeight = FontWeight.Black)
-                        Text("LAUNCH", color = Night, fontSize = 17.sp, fontWeight = FontWeight.Black)
+                        Text("LAUNCH", color = Night, fontSize = 16.sp, fontWeight = FontWeight.Black)
                     }
                 }
             }
@@ -359,6 +369,9 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
                 drawLine(Color(0xffffd47a).copy(alpha = .65f), Offset(ghostX, ground - 65), Offset(ghostX, ground), strokeWidth = 2f)
                 drawCircle(Color(0xffffd47a).copy(alpha = .55f), 13f, Offset(ghostX, ground - 65), style = Stroke(2f))
             }
+        }
+        if (game.airliftFor > 0) {
+            repeat(3) { i -> drawLine(Color(0xff7be7ee).copy(alpha = .7f-i*.15f), Offset(ballX-15,ballY+20+i*8), Offset(ballX,ballY+12+i*8), strokeWidth=3f) }
         }
         if (game.gravityPulseFor > 0) drawCircle(Color(0xffc8aaff).copy(alpha = .6f), 30f, Offset(ballX,ballY), style = Stroke(3f))
         if (game.rocketFlashFor > 0) drawLine(Color(0xffffa454), Offset(ballX - 48,ballY), Offset(ballX - 11,ballY), strokeWidth = 12f)
@@ -567,6 +580,12 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
 }
 
 private fun nodePosition(node: ResearchNode): Offset {
+    if (node.id == AbilityResearch.HUB) return Offset(0f,100f)
+    if (node.ability != null) {
+        val angle = PI / 2 + (node.ability.ordinal - 1.5) * .18
+        val radius = 270f + node.tier * 65f
+        return Offset((cos(angle)*radius).toFloat(),(sin(angle)*radius).toFloat())
+    }
     val angle = -PI / 2 + node.branch.ordinal * PI / 4 + when (node.tier) {
         1, 3, 8, 10, 13, 16, 18, 21 -> -.075
         2, 4, 9, 11, 14, 17, 19, 22 -> .075
@@ -590,7 +609,7 @@ private fun nodePosition(node: ResearchNode): Offset {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("RESEARCH CONSTELLATION", color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.Black)
-                Text("${ResearchTree.all.count(game::owns)}/192 • $${game.format(game.cash)} • drag to explore", color = Mint, fontSize = 11.sp)
+                Text("${ResearchTree.all.count(game::owns)}/${ResearchTree.all.size} • $${game.format(game.cash)} • drag to explore", color = Mint, fontSize = 11.sp)
             }
             TextButton(onClick = { pan = Offset.Zero; zoom = .78f }) { Text("CENTER") }
         }
@@ -599,8 +618,15 @@ private fun nodePosition(node: ResearchNode): Offset {
             val glyphs = listOf("↗", "☁", "◆", "≈", "ϟ", "✈", "◉", "★")
             Tech.entries.forEach { branch ->
                 TextButton(onClick = {
-                    val point = nodePosition(ResearchTree.nodes(branch)[12]); zoom = .78f; pan = Offset(-point.x * zoom, -point.y * zoom)
+                    val point = nodePosition(if (branch == Tech.LIGHTNING) ResearchTree.byId.getValue(AbilityResearch.HUB) else ResearchTree.nodes(branch)[12]); zoom = .78f; pan = Offset(-point.x * zoom, -point.y * zoom)
                 }) { Text("${glyphs[branch.ordinal]} ${branch.title}", fontSize = 11.sp) }
+            }
+        }
+        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp)) {
+            FlightAbility.entries.forEach { ability ->
+                TextButton(onClick = { val node = ResearchTree.byId.getValue("${AbilityResearch.prefix(ability)}-8"); val point = nodePosition(node); zoom = 1f; pan = Offset(-point.x,-point.y); selected = node }) {
+                    AbilityGlyph(ability, Modifier.size(20.dp)); Text(ability.title, color = abilityTint(ability), fontSize = 11.sp)
+                }
             }
         }
         Box(Modifier.fillMaxSize()) {
@@ -629,14 +655,14 @@ private fun nodePosition(node: ResearchNode): Offset {
                             drawLine(if (game.owns(node)) colors[node.branch.ordinal].copy(alpha = .85f) else Color.White.copy(alpha = .22f), start, end, strokeWidth = if (game.owns(node)) 4f else 2f)
                         }
                     }
-                    if (node.tier == 0) drawLine(colors[node.branch.ordinal].copy(alpha = .5f), center, end, strokeWidth = 3f)
+                    if (node.requires.isEmpty()) drawLine(colors[node.branch.ordinal].copy(alpha = .5f), center, end, strokeWidth = 3f)
                 }
                 drawCircle(Mint.copy(alpha = .14f), 37f * zoom, center)
                 drawCircle(Mint, 22f * zoom, center)
                 ResearchTree.all.forEach { node ->
                     val pos = center + nodePosition(node) * zoom
                     val owned = game.owns(node); val available = game.unlocked(node)
-                    val color = colors[node.branch.ordinal]
+                    val color = node.ability?.let(::abilityTint) ?: colors[node.branch.ordinal]
                     if (!owned && available && game.cash >= node.cost) {
                         drawCircle(color.copy(alpha = pulse * .35f), (if (node.tier in listOf(7, 15, 23)) 32f else 23f) * zoom, pos)
                         drawCircle(color.copy(alpha = pulse), (if (node.tier in listOf(7, 15, 23)) 26f else 19f) * zoom, pos, style = Stroke(width = 2f))
@@ -654,7 +680,7 @@ private fun nodePosition(node: ResearchNode): Offset {
                         val pos = center + nodePosition(node) * zoom
                         paint.color = if (game.owns(node)) android.graphics.Color.rgb(9, 16, 34) else android.graphics.Color.WHITE
                         paint.textSize = (if (node.tier in listOf(7, 15, 23)) 20f else 14f) * zoom
-                        canvas.nativeCanvas.drawText(if (node.tier in listOf(7, 15, 23)) "✦" else glyphs[node.branch.ordinal], pos.x, pos.y + 6f * zoom, paint)
+                        canvas.nativeCanvas.drawText(if (node.tier in listOf(7, 15, 23)) "✦" else node.ability?.icon ?: glyphs[node.branch.ordinal], pos.x, pos.y + 6f * zoom, paint)
                         if (zoom >= .72f && node.tier == 0) {
                             paint.color = android.graphics.Color.WHITE; paint.textSize = 12f * zoom
                             canvas.nativeCanvas.drawText(node.branch.title, pos.x, pos.y - 28f * zoom, paint)
@@ -674,7 +700,7 @@ private fun nodePosition(node: ResearchNode): Offset {
                 Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp).background(Card, RoundedCornerShape(17.dp)).padding(14.dp)) {
                     Row { Text(listOf("↗", "☁", "◆", "≈", "ϟ", "✈", "◉", "★")[node.branch.ordinal], color = colors[node.branch.ordinal], fontSize = 22.sp)
                         Spacer(Modifier.width(10.dp)); Column { Text((if (node.tier in listOf(7, 15, 23)) "KEYSTONE • " else "") + node.name, color = Color.White, fontWeight = FontWeight.Black)
-                            Text("${node.branch.title} • ${node.effect}", color = Mint, fontSize = 12.sp) } }
+                            Text("${node.ability?.title ?: node.branch.title} • ${node.effect}", color = Mint, fontSize = 12.sp) } }
                     if (node.requires.isNotEmpty()) {
                         val parents = node.requires.mapNotNull { id -> ResearchTree.byId[id]?.name }
                         Text("Requires ${parents.joinToString(" + ")}", color = Muted, fontSize = 11.sp)

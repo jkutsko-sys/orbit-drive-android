@@ -147,9 +147,9 @@ class LaunchSmokeTest {
     }
 
     @Test fun expandedTreeAndElectricKeystone() {
-        assertEquals(192, ResearchTree.all.size)
-        assertEquals(192, ResearchTree.all.map { it.id }.toSet().size)
-        assertEquals(192, ResearchTree.all.map { it.name }.toSet().size)
+        assertEquals(265, ResearchTree.all.size)
+        assertEquals(265, ResearchTree.all.map { it.id }.toSet().size)
+        assertEquals(265, ResearchTree.all.map { it.name }.toSet().size)
         assertTrue(ResearchTree.all.all { node -> node.requires.all { it in ResearchTree.byId } })
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val prefs = context.getSharedPreferences("orbit_drive_v1", android.content.Context.MODE_PRIVATE)
