@@ -638,7 +638,6 @@ private fun nodePosition(node: ResearchNode): Offset {
                 }
             }
         }
-        }
     }
 }
 
