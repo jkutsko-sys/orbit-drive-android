@@ -86,7 +86,7 @@ internal enum class Phase { READY, CHARGING, FLYING, LANDED }
 
 internal class GameEngine(context: Context, val expedition: Boolean = false, sharedEngagement: EngagementState? = null, private val abilitySource: GameEngine? = null, private val clock: () -> Long = System::currentTimeMillis) {
     val engagement = sharedEngagement ?: EngagementState(context)
-    val abilityProgress = abilitySource?.abilityProgress ?: AbilityProgress(context, clock)
+    val abilityProgress: AbilityProgress = abilitySource?.abilityProgress ?: AbilityProgress(context, clock)
     private val prefs = context.getSharedPreferences(if (expedition) "orbit_expedition_v1" else "orbit_drive_v1", Context.MODE_PRIVATE)
     private val previewBuild = context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
     fun redeemVoucher(code: String): String {

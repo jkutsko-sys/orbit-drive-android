@@ -63,6 +63,12 @@ class AbilityProgressTest {
         assertEquals(1.0,game.multiplier,.0001)
         assertEquals(19,game.abilityProgress.earned)
         assertEquals(game.cash,GameEngine(ctx).cash,.01)
+        game.buyAbilitySkill(AbilitySkills.byId.getValue("LIGHTNING-0"))
+        assertTrue(game.ascendAvailable)
+        game.ascend()
+        assertEquals(1.0,game.multiplier,.0001)
+        assertTrue(game.abilityUnlocked(FlightAbility.LIGHTNING))
+        assertEquals(19,game.abilityProgress.earned)
         assertEquals(34,game.ascensionRelics.size)
         assertEquals(34,game.ascensionRelics.map { it.name }.toSet().size)
     }

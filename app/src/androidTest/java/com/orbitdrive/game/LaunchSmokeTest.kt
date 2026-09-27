@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import org.junit.Rule
 import org.junit.Test
 import org.junit.Assert.assertEquals
@@ -38,11 +39,18 @@ class LaunchSmokeTest {
     @Test fun clubhouseAndWeeklyExpeditionOpen() {
         rule.onNodeWithTag("clubhouse").performClick()
         rule.onNodeWithText("CLUBHOUSE").assertExists()
-        rule.onNodeWithText("Weekly").performClick()
+        rule.onNodeWithText("Weekly").performScrollTo().performClick()
         rule.onNodeWithTag("enterExpedition").performClick()
         rule.onNodeWithText("WEEKLY EXPEDITION").assertExists()
         rule.onNodeWithText("EXIT EXPEDITION").performClick()
         rule.onNodeWithText("THE INFINITE RANGE").assertExists()
+    }
+
+    @Test fun dedicatedAbilityTreesOpen() {
+        rule.onNodeWithTag("clubhouse").performClick()
+        rule.onNodeWithText("Skill Trees").performScrollTo().performClick()
+        rule.onNodeWithText("ABILITY SKILL TREES").assertExists()
+        rule.onNodeWithText("Thunder").assertExists()
     }
 
     @Test fun settingsOpensFromCashHeader() {
