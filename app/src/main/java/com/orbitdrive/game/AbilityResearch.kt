@@ -28,7 +28,7 @@ internal object AbilityResearch {
         "Salvage Jet" to "+50 cash per ignition", "Clean Burn" to "Ignore air drag during afterburner", "Pilot Coupling" to "Aircraft timing bonus rises to 60%",
         "Reserve Tank" to "+1 rocket use per shot", "KEYSTONE: Orbital Injection" to "Ignition above 1K m gives 40% more impulse",
         "Heavy Fuel" to "+20 ignition impulse", "Long Booster" to "+1 second afterburner", "Rocket Dividend" to "Ignition cash doubles",
-        "Third Stage" to "+20 upward impulse", "Ion Exhaust" to "+2 flight seconds electrified after ignition", "Launch Window" to "+10% impulse while rising",
+        "Third Stage" to "+20 upward impulse", "Ion Exhaust" to "+2 flight seconds electrified after ignition", "Rising Window" to "+10% impulse while rising",
         "Hyper Fuel" to "+25 ignition impulse", "KEYSTONE: Star Engine" to "Each later ignition this shot is 25% stronger"
     )
     private val gravity = listOf(
