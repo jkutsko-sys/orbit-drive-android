@@ -111,13 +111,13 @@ class LaunchSmokeTest {
             game.upgradeRelic(id)
             repeat(10) { game.upgradeClub() }
             assertEquals(1, game.clubMilestoneCount(0))
-            assertEquals(1, game.relicLevel(id))
+            assertEquals(2, game.relicLevel(id))
             assertTrue(game.ascendAvailable)
             game.ascend()
             val restored = GameEngine(context)
             assertEquals(1, restored.clubMilestoneCount(0))
             assertTrue(restored.relicDiscovered(id))
-            assertEquals(1, restored.relicLevel(id))
+            assertEquals(2, restored.relicLevel(id))
             assertEquals(0, restored.clubLevel(0))
         } finally {
             if (prior == null) prefs.edit().remove("save").commit()
@@ -146,28 +146,11 @@ class LaunchSmokeTest {
         }
     }
 
-    @Test fun expandedTreeAndElectricKeystone() {
-        assertEquals(265, ResearchTree.all.size)
-        assertEquals(265, ResearchTree.all.map { it.id }.toSet().size)
-        assertEquals(265, ResearchTree.all.map { it.name }.toSet().size)
+    @Test fun researchContainsNoAbilityNodes() {
+        assertEquals(168, ResearchTree.all.size)
+        assertEquals(168, ResearchTree.all.map { it.id }.toSet().size)
+        assertEquals(168, ResearchTree.all.map { it.name }.toSet().size)
         assertTrue(ResearchTree.all.all { node -> node.requires.all { it in ResearchTree.byId } })
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val prefs = context.getSharedPreferences("orbit_drive_v1", android.content.Context.MODE_PRIVATE)
-        val prior = prefs.getString("save", null)
-        try {
-            val nodes = JSONArray((0..15).map { "LIGHTNING-$it" })
-            prefs.edit().putString("save", JSONObject().put("nodes", nodes).toString()).commit()
-            val engine = GameEngine(context)
-            engine.startCharge(); engine.tick(.05)
-            val projectedPower = engine.projectedSwingPower
-            engine.release()
-            assertEquals(projectedPower, engine.speed, 0.0001)
-            engine.lightning()
-            assertTrue(engine.electrifiedFor > 0.0)
-            assertTrue(engine.lightningFlashFor > 0.0)
-        } finally {
-            if (prior == null) prefs.edit().remove("save").commit()
-            else prefs.edit().putString("save", prior).commit()
-        }
+        assertTrue(ResearchTree.all.none { it.branch == Tech.LIGHTNING })
     }
 }

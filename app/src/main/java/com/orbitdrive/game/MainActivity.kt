@@ -173,7 +173,7 @@ class MainActivity : ComponentActivity() {
         Box(Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(17.dp)).background(Card)
             .pointerInput(game) { detectTapGestures(onTap = { if (game.phase == Phase.FLYING && FlightAbility.AIRLIFT in game.engagement.slots) game.useAbility(FlightAbility.AIRLIFT) }) }) {
             RangeArt(game, Modifier.fillMaxSize())
-            if (game.ghostTarget > 0) Text(if (game.distance > game.ghostTarget) "NEW PERSONAL BEST!" else "PB GHOST • ${game.format(max(0.0, game.ghostTarget - game.distance))} m ahead",
+            if (game.phase == Phase.FLYING && game.ghostTarget > 0) Text(if (game.distance > game.ghostTarget) "NEW PERSONAL BEST!" else "PB GHOST • ${game.format(max(0.0, game.ghostTarget - game.distance))} m ahead",
                 Modifier.align(Alignment.BottomStart).padding(10.dp).background(Night.copy(alpha = .7f)).padding(5.dp), color = Color(0xffffd47a), fontSize = 10.sp)
             if (game.comboFlashFor > 0) Text("✦ ${game.comboMessage.uppercase()} ✦", Modifier.align(Alignment.Center).background(Night.copy(alpha = .8f)).padding(12.dp), color = Mint, fontWeight = FontWeight.Black)
             if (game.electrifiedFor > 0) Text("⚡ ELECTRIFIED  ${"%.1f".format(game.electrifiedFor)}s",
@@ -182,19 +182,19 @@ class MainActivity : ComponentActivity() {
             if (game.airliftFor > 0) Text("↑ TAP THE RANGE TO CLIMB • ${"%.1f".format(game.airliftFor)}s",
                 Modifier.align(Alignment.BottomCenter).padding(bottom = 45.dp).background(Color(0xff124954), RoundedCornerShape(12.dp)).padding(8.dp),
                 color = Color(0xff7be7ee), fontWeight = FontWeight.Black, fontSize = 11.sp)
-            game.nextPlanet?.let { planet ->
+            (if (game.phase == Phase.FLYING) game.nextPlanet else game.planets.firstOrNull())?.let { planet ->
                 Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(12.dp)
                     .background(Color.Black.copy(alpha = .55f), RoundedCornerShape(11.dp)).padding(10.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("NEXT MILESTONE: ${planet.name.uppercase()}", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
                         Text("${game.format(planet.distance)} m", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Mint)
                     }
-                    LinearProgressIndicator(progress = { (game.distance / planet.distance).toFloat().coerceIn(0f, 1f) },
+                    LinearProgressIndicator(progress = { (if(game.phase == Phase.FLYING) game.distance / planet.distance else 0.0).toFloat().coerceIn(0f, 1f) },
                         modifier = Modifier.fillMaxWidth().padding(top = 7.dp).height(5.dp), color = Mint, trackColor = Color.White.copy(alpha = .2f))
                     Text("REACH IT FOR A BOUNTY • REPEATS EVERY SHOT", fontSize = 9.sp, color = Muted)
                 }
             }
-            if (game.firstMilestoneFor > 0) {
+            if (game.phase == Phase.FLYING && game.firstMilestoneFor > 0) {
                 Column(Modifier.align(Alignment.Center).fillMaxWidth(.88f)
                     .background(Night.copy(alpha = .88f), RoundedCornerShape(22.dp)).padding(18.dp),
                     horizontalAlignment = Alignment.CenterHorizontally) {
@@ -215,7 +215,7 @@ class MainActivity : ComponentActivity() {
             if (game.phase == Phase.FLYING) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     game.engagement.slots.forEach { ability ->
-                        val ready = game.abilityCharges(ability) > 0
+                        val ready = game.abilityReady(ability)
                         Button(onClick = { game.useAbility(ability) }, enabled = ready,
                             modifier = Modifier.heightIn(min = 78.dp).width(82.dp), shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = abilityBackground(ability), contentColor = abilityTint(ability),
@@ -223,7 +223,7 @@ class MainActivity : ComponentActivity() {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 AbilityGlyph(ability, Modifier.size(28.dp))
                                 Text(ability.title, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                Text(if (!game.abilityUnlocked(ability)) "LOCKED" else if (ability == FlightAbility.AIRLIFT && game.airliftFor > 0) "TAP RANGE" else "${game.abilityCharges(ability)} USE", fontSize = 9.sp)
+                                Text(if (!game.abilityUnlocked(ability)) "LOCKED" else if (ability == FlightAbility.AIRLIFT && game.airliftFor > 0) "TAP RANGE" else if (game.abilityActive(ability) > 0 && ability != FlightAbility.LIGHTNING) "${game.abilityActive(ability).toInt()}s ACTIVE" else "${game.abilityCharges(ability)}/${game.abilityCapacity(ability)} • ${game.abilityReadyIn(ability).toInt()}s", fontSize = 9.sp)
                             }
                         }
                     }
@@ -311,9 +311,12 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
 }
 
 @Composable private fun RangeArt(game: GameEngine, modifier: Modifier) {
+    val atTee = game.phase != Phase.FLYING
+    val sceneDistance = game.rangeSceneDistance
+    val sceneAltitude = if (atTee) 0.0 else game.altitude
     Canvas(modifier) {
         withTransform({ scale(1.18f, 1.18f, pivot = Offset(size.width * .30f, size.height * .50f)) }) {
-        val space = game.distance > 7000
+        val space = sceneDistance > 7000
         drawRect(brush = Brush.verticalGradient(if (space) listOf(Color(0xff08051c), Color(0xff201038)) else listOf(Color(0xff194d79), Color(0xff66b7bc))))
         repeat(42) { i ->
             val x = ((i * 173 + 41) % 997) / 997f * size.width
@@ -321,7 +324,7 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
             drawCircle(Color.White.copy(alpha = if (space) .75f else .15f), radius = if (i % 4 == 0) 2.5f else 1f, center = Offset(x, y))
         }
         val ground = size.height * .8f
-        val drift = (game.distance * .9).toFloat()
+        val drift = (sceneDistance * .9).toFloat()
         if (!space) {
             repeat(5) { i ->
                 val x = ((i * size.width / 3 - drift * .7f) % (size.width + 160) + size.width + 160) % (size.width + 160) - 70
@@ -348,27 +351,27 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
             val x = ((i * 90f - drift * 1.8f) % (size.width + 90) + size.width + 90) % (size.width + 90)
             drawLine(Color.White.copy(alpha = .17f), Offset(x, ground + 18), Offset(x + 25, ground + 18), strokeWidth = 2f)
         }
-        if (game.distance < 450 && !game.expedition) drawProShop(game.engagement, ground, game.distance.toFloat(), size.width, size.height)
-        val ballX = size.width * if (game.phase == Phase.READY || game.phase == Phase.CHARGING) .18f else .36f
-        val height = (ln(1 + max(0.0, game.altitude)) / ln(200.0)).toFloat() * size.height * .55f
+        if (sceneDistance < 450 && !game.expedition) drawProShop(game.engagement, ground, sceneDistance.toFloat(), size.width, size.height)
+        val ballX = size.width * if (atTee) .18f else .36f
+        val height = (ln(1 + max(0.0, sceneAltitude)) / ln(200.0)).toFloat() * size.height * .55f
         val ballY = max(size.height * .15f, ground - 10 - height)
         drawCircle(Color.Black.copy(alpha = .25f), radius = 12f, center = Offset(ballX, ground))
         val trailColor = listOf(Mint, Color(0xffffcf70), Color(0xffd39cff), Color(0xff87e9ff))[game.engagement.trailSelected]
         if (game.phase == Phase.FLYING) drawLine(trailColor.copy(alpha = .65f), Offset(ballX - min(130f, (game.speed * .3).toFloat()), ballY + 20), Offset(ballX - 8, ballY + 2), strokeWidth = 6f)
-        if (game.ghostTarget > 0) {
-            val ghostX = ballX + ((game.ghostTarget - game.distance) * .55).toFloat()
+        if (!atTee && game.ghostTarget > 0) {
+            val ghostX = ballX + ((game.ghostTarget - sceneDistance) * .55).toFloat()
             if (ghostX in 0f..size.width) {
                 drawLine(Color(0xffffd47a).copy(alpha = .65f), Offset(ghostX, ground - 65), Offset(ghostX, ground), strokeWidth = 2f)
                 drawCircle(Color(0xffffd47a).copy(alpha = .55f), 13f, Offset(ghostX, ground - 65), style = Stroke(2f))
             }
         }
-        if (game.airliftFor > 0) {
+        if (!atTee && game.airliftFor > 0) {
             repeat(3) { i -> drawLine(Color(0xff7be7ee).copy(alpha = .7f-i*.15f), Offset(ballX-15,ballY+20+i*8), Offset(ballX,ballY+12+i*8), strokeWidth=3f) }
         }
-        if (game.gravityPulseFor > 0) drawCircle(Color(0xffc8aaff).copy(alpha = .6f), 30f, Offset(ballX,ballY), style = Stroke(3f))
+        if (!atTee && game.gravityPulseFor > 0) drawCircle(Color(0xffc8aaff).copy(alpha = .6f), 30f, Offset(ballX,ballY), style = Stroke(3f))
         if (game.rocketFlashFor > 0) drawLine(Color(0xffffa454), Offset(ballX - 48,ballY), Offset(ballX - 11,ballY), strokeWidth = 12f)
         val ball = game.ball
-        if (game.electrifiedFor > 0) {
+        if (!atTee && game.electrifiedFor > 0) {
             val shimmer = 3f + (game.electrifiedFor.toFloat() * 5f) % 6f
             drawCircle(Color(0xffb3f7ff).copy(alpha = .18f), radius = 20f + shimmer, center = Offset(ballX, ballY))
             drawCircle(Color(0xff70dfff), radius = 15f, center = Offset(ballX, ballY), style = Stroke(width = 2.5f))
@@ -380,14 +383,14 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
             }
         }
         if (game.twinLaunch && game.phase == Phase.FLYING) {
-            val secondY = ballY + 22f + sin(game.distance.toFloat() * .04f) * 4f
+            val secondY = ballY + 22f + sin(sceneDistance.toFloat() * .04f) * 4f
             drawCircle(ball.tint.copy(alpha = .88f), 9f, Offset(ballX - 29f, secondY))
             drawLine(ball.stripe, Offset(ballX - 34f, secondY - 5f), Offset(ballX - 24f, secondY + 5f), strokeWidth = 2f)
             drawLine(Mint.copy(alpha = .4f), Offset(ballX - 85f, secondY + 7f), Offset(ballX - 39f, secondY), strokeWidth = 3f)
         }
         drawCircle(ball.tint, radius = 11f, center = Offset(ballX, ballY))
         drawCircle(ball.stripe.copy(alpha = .8f), radius = 11f, center = Offset(ballX, ballY), style = Stroke(width = 2f))
-        val spin = (game.distance * .12).toFloat()
+        val spin = (sceneDistance * .12).toFloat()
         drawLine(ball.stripe, Offset(ballX + cos(spin) * 8f, ballY + sin(spin) * 8f),
             Offset(ballX - cos(spin) * 8f, ballY - sin(spin) * 8f), strokeWidth = 2.4f)
         drawIntoCanvas { canvas ->
@@ -406,7 +409,7 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
             drawPath(bolt, Color(0xfffff0a2).copy(alpha = flash), style = Stroke(width = 6f * flash + 2f))
             drawPath(bolt, Color.White.copy(alpha = flash), style = Stroke(width = 2f))
         }
-        if (game.planeSpriteFor > 0) {
+        if (!atTee && game.planeSpriteFor > 0) {
             val stage = game.level(Tech.PLANES)
             val appear = (game.planeSpriteFor / (if (stage >= 7) 2.5 else 1.8)).toFloat().coerceIn(0f, 1f)
             val scale = 0.75f + stage * .035f
@@ -449,7 +452,7 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
                 }
             }
         }
-        if (game.phase == Phase.READY || game.phase == Phase.CHARGING) {
+        if (atTee) {
             val gx = ballX - 38f
             drawGolferSprite(gx, ground, game.selectedGolfer, game.golfer.look, 1.12f)
             val clubColor = if (game.equippedClub == game.clubs.lastIndex) Color(0xffe7a6ff)
@@ -476,10 +479,10 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
                 drawLine(Color.White.copy(alpha = .09f + min(.23f, game.speed.toFloat() / 2000f)), Offset(x, y), Offset(x + 25 + min(85f, game.speed.toFloat() * .12f), y), strokeWidth = 2f)
             }
         }
-        if (game.distance < 10000) {
-            val baseMarker = (game.distance / 100).toInt()
+        if (sceneDistance < 10000) {
+            val baseMarker = (sceneDistance / 100).toInt()
             for (marker in baseMarker..baseMarker + 8) {
-                val x = ballX + ((marker * 100 - game.distance) * 1.1).toFloat()
+                val x = ballX + ((marker * 100 - sceneDistance) * 1.1).toFloat()
                 if (x in 0f..size.width && marker > 0) {
                     drawLine(Color.White.copy(alpha = .7f), Offset(x, ground - 24), Offset(x, ground), strokeWidth = 2f)
                     drawRect(Mint.copy(alpha = .85f), Offset(x, ground - 24), Size(22f, 12f))
@@ -487,8 +490,8 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
             }
         }
         game.obstacles.forEachIndexed { obstacleIndex, obstacle ->
-            val x = ballX + ((obstacle.at - game.distance) * .55).toFloat()
-            if (x in -65f..(size.width + 65f) && game.distance < 17000 && !game.obstacleBroken(obstacleIndex)) {
+            val x = ballX + ((obstacle.at - sceneDistance) * .55).toFloat()
+            if (x in -65f..(size.width + 65f) && sceneDistance < 17000 && !game.obstacleBroken(obstacleIndex)) {
                 val h = max(34f, (obstacle.height * 3.4).toFloat())
                 when {
                     obstacle.name.contains("rock") -> {
@@ -523,9 +526,9 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
                 }
             }
         }
-        game.nextPlanet?.let { planet ->
-            if (planet.distance - game.distance < max(2500.0, planet.distance * .15)) {
-                val progress = 1 - max(0.0, (planet.distance - game.distance) / max(2500.0, planet.distance * .15))
+        (if (game.phase == Phase.FLYING) game.nextPlanet else game.planets.firstOrNull())?.let { planet ->
+            if (planet.distance - sceneDistance < max(2500.0, planet.distance * .15)) {
+                val progress = 1 - max(0.0, (planet.distance - sceneDistance) / max(2500.0, planet.distance * .15))
                 val x = size.width * (.92f - .48f * progress.toFloat())
                 val center = Offset(x, ground * .42f)
                 val radius = if (planet.distance > 100000) 55f else 41f
@@ -533,7 +536,7 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
             }
         }
         game.planetImpactID?.let { id ->
-            if (game.planetEffectFor > 0) {
+            if (!atTee && game.planetEffectFor > 0) {
                 val planet = game.planets[id]
                 val first = game.firstMilestoneFor > 0
                 val progress = (1 - game.planetEffectFor / (if (first) 3.0 else 1.8)).toFloat().coerceIn(0f, 1f)
@@ -572,13 +575,8 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
 }
 
 private fun nodePosition(node: ResearchNode): Offset {
-    if (node.id == AbilityResearch.HUB) return Offset(0f,100f)
-    if (node.ability != null) {
-        val angle = PI / 2 + (node.ability.ordinal - 1.5) * .18
-        val radius = 270f + node.tier * 65f
-        return Offset((cos(angle)*radius).toFloat(),(sin(angle)*radius).toFloat())
-    }
-    val angle = -PI / 2 + node.branch.ordinal * PI / 4 + when (node.tier) {
+    val branchIndex = Tech.entries.filter { it != Tech.LIGHTNING }.indexOf(node.branch)
+    val angle = -PI / 2 + branchIndex * 2 * PI / 7 + when (node.tier) {
         1, 3, 8, 10, 13, 16, 18, 21 -> -.075
         2, 4, 9, 11, 14, 17, 19, 22 -> .075
         else -> 0.0
@@ -608,17 +606,10 @@ private fun nodePosition(node: ResearchNode): Offset {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             val glyphs = listOf("↗", "☁", "◆", "≈", "ϟ", "✈", "◉", "★")
-            Tech.entries.forEach { branch ->
+            Tech.entries.filter { it != Tech.LIGHTNING }.forEach { branch ->
                 TextButton(onClick = {
-                    val point = nodePosition(if (branch == Tech.LIGHTNING) ResearchTree.byId.getValue(AbilityResearch.HUB) else ResearchTree.nodes(branch)[12]); zoom = .78f; pan = Offset(-point.x * zoom, -point.y * zoom)
+                    val point = nodePosition(ResearchTree.nodes(branch)[12]); zoom = .78f; pan = Offset(-point.x * zoom, -point.y * zoom)
                 }) { Text("${glyphs[branch.ordinal]} ${branch.title}", fontSize = 11.sp) }
-            }
-        }
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp)) {
-            FlightAbility.entries.forEach { ability ->
-                TextButton(onClick = { val node = ResearchTree.byId.getValue("${AbilityResearch.prefix(ability)}-8"); val point = nodePosition(node); zoom = 1f; pan = Offset(-point.x,-point.y); selected = node }) {
-                    AbilityGlyph(ability, Modifier.size(20.dp)); Text(ability.title, color = abilityTint(ability), fontSize = 11.sp)
-                }
             }
         }
         Box(Modifier.fillMaxSize()) {
@@ -776,12 +767,12 @@ private fun nodePosition(node: ResearchNode): Offset {
 @Composable private fun AscendScreen(game: GameEngine) {
     var confirm by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Header("THE LONG DRIVE", "Leave the range behind. Keep the power you earned.")
+        Header("THE LONG DRIVE", "Earn relics to build permanent power. Ascension itself adds no multiplier.")
         CardBox {
             Spacer(Modifier.height(20.dp))
             Icon(Icons.Default.AutoAwesome, null, Modifier.size(70.dp).align(Alignment.CenterHorizontally), tint = Mint)
             Text("ASCEND", Modifier.fillMaxWidth(), fontSize = 30.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center)
-            Text("Restart the range and earn permanent relics. Spend them to discover and upgrade powers that carry through every ascension.",
+            Text("Restart the range to earn relic currency. Your ascension count and unspent relics grant no power. Discover and upgrade relics for permanent bonuses. Ability skill points and builds persist.",
                 Modifier.fillMaxWidth().padding(14.dp), color = Muted, textAlign = TextAlign.Center)
             Text("${game.relics} RELICS  •  ${"%.2f".format(game.multiplier)}× POWER  •  ${game.ascensions} ASCENSIONS", Modifier.fillMaxWidth(), color = Mint, fontSize = 12.sp, textAlign = TextAlign.Center)
             Spacer(Modifier.height(24.dp))
@@ -796,7 +787,7 @@ private fun nodePosition(node: ResearchNode): Offset {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             CardBox {
                 Text("RELIC DISCOVERY", color = Color.White, fontWeight = FontWeight.Black)
-                Text("Pay relics to reveal one random new power. Discoveries and ranks persist through ascension.", color = Muted, fontSize = 11.sp)
+                Text("Your first discovery is Titan Grip; later discoveries are random. Each discovery grants rank 1. Discoveries and ranks persist through ascension.", color = Muted, fontSize = 11.sp)
                 Text("${game.ascensionRelics.indices.count(game::relicDiscovered)}/${game.ascensionRelics.size} discovered", color = Mint, fontSize = 12.sp)
                 if (game.lastDiscovery.isNotEmpty()) Text("NEW: ${game.lastDiscovery}", color = Color(0xffffd47a), fontWeight = FontWeight.Bold)
                 Button(onClick = game::discoverRelic,
@@ -807,9 +798,9 @@ private fun nodePosition(node: ResearchNode): Offset {
             }
             game.ascensionRelics.forEachIndexed { id, relic ->
                 if (game.relicDiscovered(id)) CardBox {
-                    Text("${relic.icon}  ${relic.name}  •  RANK ${game.relicLevel(id)}", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("${relic.icon}  ${relic.name}  •  RANK ${game.relicLevel(id)}/${relic.maxRank}", color = Color.White, fontWeight = FontWeight.Bold)
                     Text(relic.description, color = Mint, fontSize = 11.sp)
-                    Button(onClick = { game.upgradeRelic(id) }, enabled = game.relicLevel(id) < 30 && game.relicBank >= game.relicUpgradeCost(id), modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { game.upgradeRelic(id) }, enabled = game.relicLevel(id) < relic.maxRank && game.relicBank >= game.relicUpgradeCost(id), modifier = Modifier.fillMaxWidth()) {
                         Text("UPGRADE • ${game.relicUpgradeCost(id)} RELICS")
                     }
                 }

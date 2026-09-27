@@ -84,3 +84,16 @@ Contracts and abilities have colored, illustrated buttons. Launch controls are t
 ## Labs 0.13 — Pro Shop range
 
 The Pro Shop contains eight facilities with 12 levels each. Upgrade costs rise with level; every purchase adds a visible piece to the tee platform, clubhouse or skyline, and the facilities survive ascension. Existing facility levels and tickets carry forward. Contracts open a new goal four hours after each claim; the timer persists through closing the app and shots during cooldown do not advance that contract. The `TICKETS` voucher grants 1,000 tickets per use in debuggable previews. Activate Airlift from its ability button, then tap anywhere on the range scene for repeated lifts during its active window.
+
+
+## Labs 0.14 — Ability builds and relic progression
+
+The camera returns to the home tee after every shot, with the full Pro Shop campus scaled to fit the range. Last-shot distance remains in the HUD.
+
+Abilities now live in Clubhouse → Skill Trees, separate from the 168 cash research nodes. Their 96 skills form three routes per ability; only one final keystone can be selected per ability. Fifteen first-time distance milestones (100 m to 80M m) grant 60 permanent skill points in total. Free full respecs are available between shots once active effects end, without resetting cooldowns. Points and builds survive ascension. Old cash ability purchases are refunded once; current best and previously destroyed distance milestones seed earned points.
+
+Base timing (real time, including while offline): Lightning stores 2 charges and recharges one every 45s; Gravity stores 2 charges, recharges one every 90s and lasts 6s; Rocket stores 1 charge, recharges every 120s and burns for 8s; Air Dribble lasts 60s across shots with a 600s cooldown beginning at activation. Charges recharge sequentially. Research and relics modify capacities and durations; cooldown relic reductions are capped at 20%. Air Dribble taps are made on the range or ability button. Timers are saved locally and use the device clock.
+
+The exponential power multiplier from lifetime ascension currency is removed. Ascension itself grants no stats. There are now 34 relics, including 24 ability modifiers, with the new relics capped at 6 or 10 ranks. Existing original relic ranks are retained. The first new collection discovery guarantees Titan Grip; subsequent discoveries are random. A discovery now grants rank 1 immediately, and the larger collection uses a gentler discovery cost curve. Existing low-distance saves can feel weaker after the removal of the automatic multiplier; ability builds and relic upgrades supply the replacement progression.
+
+The app remains Orbit Drive Labs with the same signing key and application ID. This APK updates the existing Labs save; the original preview app stays separate.

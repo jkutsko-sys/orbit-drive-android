@@ -6,14 +6,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import kotlin.math.min
 
 /** Each purchased level adds a visible part to the home tee and its skyline. */
 internal fun DrawScope.drawProShop(state: EngagementState, ground: Float, distance: Float, width: Float, height: Float) {
+    val campusScale = (width / 560f).coerceAtMost(1.6f)
+    withTransform({ scale(campusScale,campusScale,pivot = Offset(0f,ground)) }) {
+    val campusWidth = width / campusScale
     val f = state.facilities
-    val shift = distance * .55f
-    val house = width * .66f - shift
-    val tee = width * .18f - shift
+    val shift = distance * .55f / campusScale
+    val house = campusWidth * .40f - shift
+    val tee = campusWidth * .18f - shift
     val era = (f.sum() / 12).coerceIn(0, 7)
     val accent = listOf(Color(0xff8b6954),Color(0xff698b91),Color(0xff5b829d),Color(0xff6e82ad),Color(0xff757cb8),Color(0xff8973bf),Color(0xffa77bc7),Color(0xffdfb675))[era]
     val bronze = Color(0xffffd47a)
@@ -91,4 +95,5 @@ internal fun DrawScope.drawProShop(state: EngagementState, ground: Float, distan
         drawLine(bronze, Offset(x,y), Offset(x,roof), strokeWidth = 2f)
         drawPath(flag, bronze)
     }
+}
 }

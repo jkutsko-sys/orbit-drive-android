@@ -10,10 +10,10 @@ import java.time.DayOfWeek
 import java.time.temporal.TemporalAdjusters
 
 internal enum class FlightAbility(val title: String, val icon: String, val description: String) {
-    LIGHTNING("Lightning", "ϟ", "Adds velocity. Time it just before landing for Thunder Skip."),
-    AIRLIFT("Airlift", "↑", "Tap rapidly for 5 seconds to gain altitude without losing forward speed."),
-    ROCKET("Rocket", "↑", "Forward ignition. Fire during an aircraft carry for Slingshot Launch."),
-    GRAVITY("Gravity", "☁", "Brief lift and reduced gravity for four flight seconds.")
+    LIGHTNING("Lightning", "ϟ", "Stores 2 charges; regenerates one every 45 seconds. Time strikes before landing for Thunder Skip."),
+    AIRLIFT("Air Dribble", "↑", "Tap the range during a 60-second active window. 10-minute cooldown; spans multiple shots."),
+    ROCKET("Rocket", "↑", "One ignition charge per 2 minutes; 8-second afterburner. Aircraft timing gives Slingshot Launch."),
+    GRAVITY("Gravity", "☁", "Stores 2 pulses; regenerates one every 90 seconds. Each pulse lasts 6 seconds.")
 }
 internal data class Contract(val title: String, val goal: Int, val kind: Int)
 internal class EngagementState(context: Context, private val now: () -> Long = System::currentTimeMillis, private val today: () -> LocalDate = { LocalDate.now(ZoneOffset.UTC) }) {

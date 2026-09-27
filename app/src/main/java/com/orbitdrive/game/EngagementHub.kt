@@ -23,7 +23,7 @@ import kotlinx.coroutines.delay
     var page by remember { mutableIntStateOf(0) }
     var timerTick by remember { mutableIntStateOf(0) }
     LaunchedEffect(page) { while (page == 0) { delay(30_000); timerTick++ } }
-    val pages = listOf("Contracts", "Abilities", "Home", "Weekly", "Combos")
+    val pages = listOf("Contracts", "Abilities", "Skill Trees", "Home", "Weekly", "Combos")
     val canChange = game.phase != Phase.FLYING && game.phase != Phase.CHARGING
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize().safeDrawingPadding(), color = Color(0xff091022)) {
@@ -55,20 +55,22 @@ import kotlinx.coroutines.delay
                             }
                         }
                         1 -> {
-                            Text("Equip two abilities. Unlock each ability in Research first. Each path improves its uses and effects. Time abilities to discover combos.")
+                            Text("Equip two abilities. Unlock them with distance milestone skill points. Charges recharge over real time, including while the game is closed.")
+                            Button(onClick={page=2},modifier=Modifier.fillMaxWidth()) { Text("OPEN ABILITY SKILL TREES • ${game.abilityProgress.available} SP") }
                             repeat(2) { slot -> HubCard {
                                 Text("SLOT ${slot + 1}: ${if (game.abilityUnlocked(state.slots[slot])) state.slots[slot].title else "LOCKED"}", fontWeight = FontWeight.Bold)
                                 FlightAbility.entries.forEach { ability ->
                                     OutlinedButton(onClick = { game.equipAbility(slot, ability) }, enabled = canChange && game.abilityUnlocked(ability), modifier = Modifier.fillMaxWidth(),
                                         colors = ButtonDefaults.outlinedButtonColors(containerColor = abilityBackground(ability), contentColor = abilityTint(ability))) {
                                         AbilityGlyph(ability, Modifier.size(36.dp)); Spacer(Modifier.width(10.dp))
-                                        Column(Modifier.weight(1f)) { Text("${ability.title}${if (!game.abilityUnlocked(ability)) " • RESEARCH TO UNLOCK" else if (state.slots[slot] == ability) " • EQUIPPED" else ""}"); Text(ability.description, fontSize = 11.sp) }
+                                        Column(Modifier.weight(1f)) { Text("${ability.title}${if (!game.abilityUnlocked(ability)) " • SKILL POINT TO UNLOCK" else if (state.slots[slot] == ability) " • EQUIPPED" else ""}"); Text(ability.description, fontSize = 11.sp) }
                                     }
                                 }
                             } }
                             if (!canChange) Text("Finish the shot to change equipment.")
                         }
-                        2 -> {
+                        2 -> { AbilityTrees(game) }
+                        3 -> {
                             Text(state.homeTitle, fontSize = 22.sp, fontWeight = FontWeight.Black)
                             Text("Your Pro Shop builds the tee box piece by piece. Each purchase changes its appearance and survives ascension. ${state.facilities.sum()}/96 upgrades.")
                             repeat(state.facilities.size) { id -> HubCard {
@@ -81,7 +83,7 @@ import kotlinx.coroutines.delay
                             } }
                             Text("Trophies earned: ${state.totalMedals} expedition medals")
                         }
-                        3 -> {
+                        4 -> {
                             Text("WEEK OF ${state.week}", fontWeight = FontWeight.Bold)
                             HubCard {
                                 Text(state.expeditionTitle, fontSize = 21.sp, fontWeight = FontWeight.Bold)
