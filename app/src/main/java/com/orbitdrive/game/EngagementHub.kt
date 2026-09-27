@@ -16,10 +16,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.platform.testTag
+import kotlinx.coroutines.delay
 
 @Composable internal fun EngagementHub(game: GameEngine, onExpedition: () -> Unit, onClose: () -> Unit) {
     val state = game.engagement
     var page by remember { mutableIntStateOf(0) }
+    var timerTick by remember { mutableIntStateOf(0) }
+    LaunchedEffect(page) { while (page == 0) { delay(30_000); timerTick++ } }
     val pages = listOf("Contracts", "Abilities", "Home", "Weekly", "Combos")
     val canChange = game.phase != Phase.FLYING && game.phase != Phase.CHARGING
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -36,15 +39,18 @@ import androidx.compose.ui.platform.testTag
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     when (page) {
                         0 -> {
-                            Text("Every completed shot earns a ticket. Contracts rotate when claimed; no daily login required.")
+                            Text("Every completed shot earns a ticket. Each contract refreshes four hours after you claim it.")
                             repeat(3) { slot ->
                                 val c = state.contract(slot)
+                                @Suppress("UNUSED_VARIABLE") val refresh = timerTick
+                                val remaining = state.contractRemaining(slot)
+                                val minutes = (remaining + 59_999) / 60_000
                                 HubCard {
                                     Text(c.title, fontWeight = FontWeight.Bold)
-                                    Text("${state.contractProgress[slot]} / ${c.goal}")
+                                    Text(if (remaining > 0) "NEXT CONTRACT IN ${minutes / 60}h ${minutes % 60}m" else "${state.contractProgress[slot]} / ${c.goal}")
                                     LinearProgressIndicator(progress = { (state.contractProgress[slot].toFloat() / c.goal).coerceIn(0f,1f) }, modifier = Modifier.fillMaxWidth())
-                                    Text("Reward: ${8 + slot * 4 + state.facilities[2]} tickets + 5 weekly points", fontSize = 12.sp)
-                                    Button(onClick = { state.claimContract(slot) }, enabled = state.contractProgress[slot] >= c.goal) { Text("CLAIM & GET NEXT CONTRACT") }
+                                    Text("Reward: ${state.contractReward(slot)} tickets + 5 weekly points", fontSize = 12.sp)
+                                    Button(onClick = { state.claimContract(slot) }, enabled = remaining == 0L && state.contractProgress[slot] >= c.goal) { Text(if (remaining > 0) "REFRESHING" else "CLAIM REWARD") }
                                 }
                             }
                         }
@@ -64,12 +70,13 @@ import androidx.compose.ui.platform.testTag
                         }
                         2 -> {
                             Text(state.homeTitle, fontSize = 22.sp, fontWeight = FontWeight.Black)
-                            Text("Your facilities transform the tee area. Reach 4, 8 and 12 total upgrades for each new era. These upgrades survive ascension.")
-                            repeat(4) { id -> HubCard {
-                                Text("${state.facilityNames[id]} • ${state.facilities[id]}/4", fontWeight = FontWeight.Bold)
+                            Text("Your Pro Shop builds the tee box piece by piece. Each purchase changes its appearance and survives ascension. ${state.facilities.sum()}/96 upgrades.")
+                            repeat(state.facilities.size) { id -> HubCard {
+                                Text("${state.facilityNames[id]} • ${state.facilities[id]}/${EngagementState.MAX_FACILITY_LEVEL}", fontWeight = FontWeight.Bold)
                                 Text(state.facilityEffects[id])
-                                Button(onClick = { state.upgradeFacility(id) }, enabled = canChange && state.facilities[id] < 4 && state.tickets >= state.facilityCost(id)) {
-                                    Text(if (state.facilities[id] == 4) "COMPLETE" else "UPGRADE • ${state.facilityCost(id)} TICKETS")
+                                LinearProgressIndicator(progress = { state.facilities[id] / EngagementState.MAX_FACILITY_LEVEL.toFloat() }, modifier = Modifier.fillMaxWidth())
+                                Button(onClick = { state.upgradeFacility(id) }, enabled = canChange && state.facilities[id] < EngagementState.MAX_FACILITY_LEVEL && state.tickets >= state.facilityCost(id)) {
+                                    Text(if (state.facilities[id] == EngagementState.MAX_FACILITY_LEVEL) "MAX LEVEL" else "UPGRADE • ${state.facilityCost(id)} TICKETS")
                                 }
                             } }
                             Text("Trophies earned: ${state.totalMedals} expedition medals")

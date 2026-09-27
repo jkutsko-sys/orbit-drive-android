@@ -170,7 +170,8 @@ class MainActivity : ComponentActivity() {
                     }
                 }
         }
-        Box(Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(17.dp)).background(Card)) {
+        Box(Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(17.dp)).background(Card)
+            .pointerInput(game) { detectTapGestures(onTap = { if (game.phase == Phase.FLYING && FlightAbility.AIRLIFT in game.engagement.slots) game.useAbility(FlightAbility.AIRLIFT) }) }) {
             RangeArt(game, Modifier.fillMaxSize())
             if (game.ghostTarget > 0) Text(if (game.distance > game.ghostTarget) "NEW PERSONAL BEST!" else "PB GHOST • ${game.format(max(0.0, game.ghostTarget - game.distance))} m ahead",
                 Modifier.align(Alignment.BottomStart).padding(10.dp).background(Night.copy(alpha = .7f)).padding(5.dp), color = Color(0xffffd47a), fontSize = 10.sp)
@@ -178,6 +179,9 @@ class MainActivity : ComponentActivity() {
             if (game.electrifiedFor > 0) Text("⚡ ELECTRIFIED  ${"%.1f".format(game.electrifiedFor)}s",
                 Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp).background(Color(0xff12394d), RoundedCornerShape(12.dp)).padding(8.dp),
                 color = Color(0xffbdf6ff), fontWeight = FontWeight.Black, fontSize = 12.sp)
+            if (game.airliftFor > 0) Text("↑ TAP THE RANGE TO CLIMB • ${"%.1f".format(game.airliftFor)}s",
+                Modifier.align(Alignment.BottomCenter).padding(bottom = 45.dp).background(Color(0xff124954), RoundedCornerShape(12.dp)).padding(8.dp),
+                color = Color(0xff7be7ee), fontWeight = FontWeight.Black, fontSize = 11.sp)
             game.nextPlanet?.let { planet ->
                 Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(12.dp)
                     .background(Color.Black.copy(alpha = .55f), RoundedCornerShape(11.dp)).padding(10.dp)) {
@@ -219,7 +223,7 @@ class MainActivity : ComponentActivity() {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 AbilityGlyph(ability, Modifier.size(28.dp))
                                 Text(ability.title, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                Text(if (!game.abilityUnlocked(ability)) "LOCKED" else if (ability == FlightAbility.AIRLIFT && game.airliftFor > 0) "TAP ${"%.1f".format(game.airliftFor)}s" else "${game.abilityCharges(ability)} USE", fontSize = 9.sp)
+                                Text(if (!game.abilityUnlocked(ability)) "LOCKED" else if (ability == FlightAbility.AIRLIFT && game.airliftFor > 0) "TAP RANGE" else "${game.abilityCharges(ability)} USE", fontSize = 9.sp)
                             }
                         }
                     }
@@ -344,19 +348,7 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
             val x = ((i * 90f - drift * 1.8f) % (size.width + 90) + size.width + 90) % (size.width + 90)
             drawLine(Color.White.copy(alpha = .17f), Offset(x, ground + 18), Offset(x + 25, ground + 18), strokeWidth = 2f)
         }
-        if (game.distance < 450 && !game.expedition) {
-            val homeX = size.width * .7f - (game.distance * .55).toFloat()
-            val era = game.engagement.facilities.sum() / 4
-            val wall = listOf(Color(0xff71523f), Color(0xff446882), Color(0xff65779e), Color(0xff906cba))[era.coerceAtMost(3)]
-            drawRoundRect(wall, Offset(homeX, ground - 38 - era * 14), Size(100f + era * 20, 38f + era * 14))
-            drawLine(Color(0xffffd47a), Offset(homeX - 4, ground - 40 - era * 14), Offset(homeX + 104 + era * 20, ground - 40 - era * 14), strokeWidth = 5f)
-            repeat(3 + era) { i -> drawRect(Color(0xffa3e9ef), Offset(homeX + 9 + i * 22, ground - 27 - era * 10), Size(12f, 13f)) }
-            if (game.engagement.facilities[3] > 0) {
-                drawLine(Color(0xffddd9ef), Offset(homeX + 126,ground), Offset(homeX + 126,ground - 66), strokeWidth = 14f)
-                drawCircle(Mint, 9f, Offset(homeX + 126,ground - 66))
-            }
-            if (game.engagement.totalMedals > 0) drawCircle(Color(0xffffd47a), 8f, Offset(homeX + 50,ground - 49 - era * 14))
-        }
+        if (game.distance < 450 && !game.expedition) drawProShop(game.engagement, ground, game.distance.toFloat(), size.width, size.height)
         val ballX = size.width * if (game.phase == Phase.READY || game.phase == Phase.CHARGING) .18f else .36f
         val height = (ln(1 + max(0.0, game.altitude)) / ln(200.0)).toFloat() * size.height * .55f
         val ballY = max(size.height * .15f, ground - 10 - height)
@@ -878,7 +870,7 @@ private fun nodePosition(node: ResearchNode): Offset {
             Text("Effects volume")
             Slider(value = audio.effectsVolume, onValueChange = audio::adjustEffectsVolume)
             HorizontalDivider()
-            Text("Preview voucher", fontWeight = FontWeight.Bold)
+            Text("Preview vouchers: ADMIN for $100,000 or TICKETS for 1,000 Pro Shop tickets", fontWeight = FontWeight.Bold)
             OutlinedTextField(value = code, onValueChange = { code = it }, label = { Text("Voucher code") }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("voucherCode"))
             Button(onClick = { result = game.redeemVoucher(code); code = "" }, modifier = Modifier.testTag("redeem")) { Text("Redeem") }
             if (result.isNotEmpty()) Text(result, color = Mint)

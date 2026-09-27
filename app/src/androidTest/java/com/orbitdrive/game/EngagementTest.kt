@@ -97,5 +97,37 @@ class EngagementTest {
         assertEquals(0.0,game.airliftFor,.001)
         assertTrue(GameEngine(ctx).abilityUnlocked(FlightAbility.AIRLIFT))
     }
+    @Test fun contractsWaitFourHoursAndShopLevelsPersist() {
+        val ctx = isolated()
+        var clock = 2_000_000_000_000L
+        val state = EngagementState(ctx, now = { clock })
+        repeat(5) { state.recordShot(150.0,false,0,false,0,false) }
+        state.claimContract(0)
+        assertEquals(EngagementState.CONTRACT_COOLDOWN_MS,state.contractRemaining(0))
+        repeat(5) { state.recordShot(150.0,false,0,false,0,false) }
+        assertEquals(0,state.contractProgress[0])
+        clock += EngagementState.CONTRACT_COOLDOWN_MS - 1
+        state.claimContract(0)
+        assertEquals(1,state.contractRounds[0])
+        clock++
+        repeat(3) { state.recordShot(150.0,true,0,false,0,false) }
+        assertEquals(3,state.contractProgress[0])
+        state.claimContract(0)
+        assertEquals(2,state.contractRounds[0])
+        state.grantTicketsForTesting(1000)
+        assertTrue(state.tickets >= 1000)
+        repeat(5) { state.upgradeFacility(4) }
+        val restored = EngagementState(ctx, now = { clock })
+        assertEquals(5,restored.facilities[4])
+        assertEquals(EngagementState.CONTRACT_COOLDOWN_MS,restored.contractRemaining(0))
+        assertEquals(8,restored.facilities.size)
+    }
+    @Test fun ticketsVoucherIsRepeatableInPreview() {
+        val game = GameEngine(isolated())
+        val before = game.engagement.tickets
+        assertTrue(game.redeemVoucher("tickets").contains("1,000"))
+        game.redeemVoucher("TICKETS")
+        assertEquals(before + 2000,game.engagement.tickets)
+    }
 
 }

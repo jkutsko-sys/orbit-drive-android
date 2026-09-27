@@ -88,6 +88,10 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
     private val previewBuild = context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
     fun redeemVoucher(code: String): String {
         if (!previewBuild) return "Vouchers are unavailable in this build"
+        if (code.trim().equals("TICKETS", ignoreCase = true)) {
+            engagement.grantTicketsForTesting(1000); cue("purchase")
+            return "1,000 range tickets added for testing"
+        }
         if (!code.trim().equals("ADMIN", ignoreCase = true)) return "Invalid voucher code"
         cash += 100_000.0; save(); cue("purchase")
         return "$100,000 added for testing"
@@ -370,7 +374,7 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
         val strikeBonus = if (perfect && nodeEffect(Tech.POWER, 23)) 1.50 else if (perfect && nodeEffect(Tech.POWER, 7)) 1.12 else 1.0
         return (club.swing * 1.15.pow(clubLevels[equippedClub]) + level(Tech.POWER) * 11) * club.smash *
             (0.28 + 0.72 * (if (nodeEffect(Tech.POWER, 1)) max(strike, 0.55) else strike)) *
-            multiplier * golfer.power * apparelPower * ball.power * clubPowerBonus * strikeBonus * (if (expedition) 1.0 else 1 + engagement.facilities[1] * .02) *
+            multiplier * golfer.power * apparelPower * ball.power * clubPowerBonus * strikeBonus * (if (expedition) 1.0 else 1 + engagement.facilities[1] * .02 + engagement.facilities[7] * .01) *
             (if (hasClubPerk(3) && equippedClub != clubs.lastIndex) .82 else 1.0)
     }
     fun format(value: Double): String = when {
@@ -546,7 +550,7 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
     private fun finish() {
         if (phase != Phase.FLYING) return
         phase = Phase.LANDED; speed = 0.0; altitude = 0.0
-        val payout = (if (expedition) 1.0 else 1 + engagement.facilities[0] * .02) * max(1.0, (20 + distance * (0.06 + combo * 0.015)) * golfer.cashBonus * (1 + relicLevels[1] * .18) * (1 + relicLevels[9] * .10) * (if (twinLaunch) 2.0 else 1.0) * (if (hasClubPerk(13)) 1.25 else 1.0) * (if (nodeEffect(Tech.ASTRAL, 7)) 1.2 else 1.0) * (1 + level(Tech.ASTRAL) * 0.18 + (if (nodeEffect(Tech.POWER, 5)) 0.15 else 0.0) + (if (nodeEffect(Tech.POWER, 8) && charge > .85) .10 else 0.0) + (if (nodeEffect(Tech.ASTRAL, 23)) combo * .12 else 0.0)) * multiplier)
+        val payout = (if (expedition) 1.0 else 1 + (engagement.facilities[0] + engagement.facilities[6]) * .02) * max(1.0, (20 + distance * (0.06 + combo * 0.015)) * golfer.cashBonus * (1 + relicLevels[1] * .18) * (1 + relicLevels[9] * .10) * (if (twinLaunch) 2.0 else 1.0) * (if (hasClubPerk(13)) 1.25 else 1.0) * (if (nodeEffect(Tech.ASTRAL, 7)) 1.2 else 1.0) * (1 + level(Tech.ASTRAL) * 0.18 + (if (nodeEffect(Tech.POWER, 5)) 0.15 else 0.0) + (if (nodeEffect(Tech.POWER, 8) && charge > .85) .10 else 0.0) + (if (nodeEffect(Tech.ASTRAL, 23)) combo * .12 else 0.0)) * multiplier)
         earned += payout; cash += payout; lifetimeDistance += distance; bestDistance = max(bestDistance, distance)
         engagement.recordShot(distance, shotPerfect, shotClears, usedLightning, combo, expedition)
         message = if (expedition) "Expedition: ${format(distance)} m • medals ${engagement.expeditionMedals}/3" else "${format(distance)} m • +$${format(earned)}"

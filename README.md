@@ -80,3 +80,7 @@ Research now contains 265 purchasable nodes. Abilities replaces Stormcalling as 
 Bounce's slot becomes **Airlift**: activate it, then tap repeatedly for five real gameplay seconds to raise the ball without sacrificing horizontal velocity to the taps. Its tree extends the window, rewards tap rhythms, reduces gravity and adds altitude bursts. Rocket research adds extra tanks, sustained afterburner and orbital ignition bonuses. Gravity research adds zero gravity, additional charges, falling-velocity conversion and a pulse-end slingshot. Upgrades are described individually in Research.
 
 Contracts and abilities have colored, illustrated buttons. Launch controls are taller with their labels shifted upward. This remains the separate Labs app and updates v0.11's save; the original v0.10 app and rollback branch are preserved.
+
+## Labs 0.13 — Pro Shop range
+
+The Pro Shop contains eight facilities with 12 levels each. Upgrade costs rise with level; every purchase adds a visible piece to the tee platform, clubhouse or skyline, and the facilities survive ascension. Existing facility levels and tickets carry forward. Contracts open a new goal four hours after each claim; the timer persists through closing the app and shots during cooldown do not advance that contract. The `TICKETS` voucher grants 1,000 tickets per use in debuggable previews. Activate Airlift from its ability button, then tap anywhere on the range scene for repeated lifts during its active window.
