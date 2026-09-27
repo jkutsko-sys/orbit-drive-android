@@ -16,7 +16,7 @@ internal enum class FlightAbility(val title: String, val icon: String, val descr
     GRAVITY("Gravity", "☁", "Brief lift and reduced gravity for four flight seconds.")
 }
 internal data class Contract(val title: String, val goal: Int, val kind: Int)
-internal class EngagementState(context: Context, private val today: () -> LocalDate = { LocalDate.now(ZoneOffset.UTC) }, private val now: () -> Long = System::currentTimeMillis) {
+internal class EngagementState(context: Context, private val now: () -> Long = System::currentTimeMillis, private val today: () -> LocalDate = { LocalDate.now(ZoneOffset.UTC) }) {
     companion object { const val CONTRACT_COOLDOWN_MS = 4 * 60 * 60 * 1000L; const val MAX_FACILITY_LEVEL = 12 }
     private val prefs = context.getSharedPreferences("orbit_engagement_v1", Context.MODE_PRIVATE)
     var tickets by mutableIntStateOf(0); private set
