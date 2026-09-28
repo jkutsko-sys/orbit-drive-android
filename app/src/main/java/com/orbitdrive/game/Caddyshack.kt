@@ -8,6 +8,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -22,6 +24,7 @@ import kotlinx.coroutines.delay
 
 @Composable internal fun Caddyshack(game:GameEngine,onClose:()->Unit) {
     val c=game.caddies
+    val largeText=LocalDensity.current.fontScale>1.2f
     var seconds by remember { mutableLongStateOf(0L) }
     LaunchedEffect(Unit) { while(true) { seconds++;delay(1000) } }
     val tick=seconds
@@ -30,7 +33,7 @@ import kotlinx.coroutines.delay
         Surface(Modifier.fillMaxSize().safeDrawingPadding(),color=Color(0xff0c1c24),contentColor=Color(0xffeef4ff)) {
             Column(Modifier.padding(16.dp)) {
                 Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) { Text("THE CADDYSHACK",fontSize=23.sp,fontWeight=FontWeight.Black);Text("YOUR CREW • YOUR ADVANTAGE",fontSize=10.sp,color=Color(0xff9cdac0)) }
+                    Column(Modifier.weight(1f)) { Text(if(largeText) "CADDYSHACK" else "THE CADDYSHACK",fontSize=if(largeText) 18.sp else 23.sp,fontWeight=FontWeight.Black,maxLines=1,overflow=TextOverflow.Ellipsis);Text("YOUR CREW • YOUR ADVANTAGE",fontSize=10.sp,color=Color(0xff9cdac0)) }
                     TextButton(onClick=onClose) { Text("CLOSE") }
                 }
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)) {

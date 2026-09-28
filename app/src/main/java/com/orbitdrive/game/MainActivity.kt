@@ -147,11 +147,16 @@ class MainActivity : ComponentActivity() {
     val scrollLayout=maxHeight<650.dp || fontScale>1.2f || maxWidth<340.dp
     val artHeight=(maxHeight-340.dp).coerceIn(240.dp,560.dp)
     val rangeScroll=rememberScrollState()
+    var teeFocused by remember { mutableStateOf(false) }
+    LaunchedEffect(scrollLayout,rangeScroll.maxValue) {
+        if(scrollLayout && rangeScroll.maxValue>0 && !teeFocused) {
+            rangeScroll.scrollTo(rangeScroll.maxValue);teeFocused=true
+        }
+    }
     LaunchedEffect(game.phase,scrollLayout) {
         if(scrollLayout && game.phase!=Phase.READY) rangeScroll.scrollTo(rangeScroll.maxValue)
     }
     Column(Modifier.fillMaxSize().padding(horizontal=12.dp,vertical=8.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-    Column(Modifier.weight(1f).fillMaxWidth().then(if(scrollLayout) Modifier.verticalScroll(rangeScroll) else Modifier),verticalArrangement=Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column(Modifier.weight(1f)) {
                 Text("ORBIT DRIVE", fontSize = 25.sp, fontWeight = FontWeight.Black, color = Color.White)
@@ -168,6 +173,7 @@ class MainActivity : ComponentActivity() {
                 Text("BEST ${game.format(game.bestDistance)} m", fontSize = 10.sp, color = Muted)
             }
         }
+    Column(Modifier.weight(1f).fillMaxWidth().then(if(scrollLayout) Modifier.verticalScroll(rangeScroll) else Modifier),verticalArrangement=Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(4.dp)) {
                 Button(onClick = openHub, modifier = Modifier.heightIn(min = 40.dp).weight(1f).testTag("clubhouse"),
                     shape = RoundedCornerShape(12.dp), contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
