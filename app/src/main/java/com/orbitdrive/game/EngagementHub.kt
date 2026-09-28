@@ -36,7 +36,7 @@ import kotlinx.coroutines.delay
                     pages.forEachIndexed { i, name -> TextButton(onClick = { page = i }) { Text(if (page == i) "• $name" else name) } }
                 }
                 if (state.notice.isNotEmpty()) Text(state.notice, color = Color(0xffffd47a), fontSize = 12.sp)
-                Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.weight(1f).testTag("hubBody").verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     when (page) {
                         0 -> {
                             Text("Every completed shot earns a ticket. Each contract refreshes four hours after you claim it.")

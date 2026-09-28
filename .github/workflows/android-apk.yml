@@ -38,15 +38,15 @@ jobs:
           api-level: 30
           arch: x86_64
           script: |
-            gradle :app:connectedDebugAndroidTest --no-daemon
+            gradle :app:connectedDebugAndroidTest --no-daemon || { adb pull /sdcard/Download/orbit-ui-checks screenshots; exit 1; }
             adb shell wm size 720x1440
             adb shell wm density 320
             adb shell settings put system font_scale 1.6
-            gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.orbitdrive.game.ResponsiveLayoutTest --no-daemon
+            gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.orbitdrive.game.ResponsiveLayoutTest --no-daemon || { adb pull /sdcard/Download/orbit-ui-checks screenshots; exit 1; }
             adb shell wm size 1280x800
             adb shell wm density 160
             adb shell settings put system font_scale 1.3
-            gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.orbitdrive.game.ResponsiveLayoutTest --no-daemon
+            gradle :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.orbitdrive.game.ResponsiveLayoutTest --no-daemon || { adb pull /sdcard/Download/orbit-ui-checks screenshots; exit 1; }
             adb pull /sdcard/Download/orbit-ui-checks screenshots
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -57,8 +57,17 @@ jobs:
           retention-days: 30
 
       - name: Upload UI checks
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: OrbitDrive-UI-checks
           path: screenshots
+          retention-days: 7
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: OrbitDrive-test-reports
+          path: app/build/reports/androidTests
           retention-days: 7

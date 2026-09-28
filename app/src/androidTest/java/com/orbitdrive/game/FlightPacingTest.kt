@@ -15,8 +15,8 @@ class FlightPacingTest {
         val ctx=object:ContextWrapper(InstrumentationRegistry.getInstrumentation().targetContext) {
             override fun getSharedPreferences(name:String,mode:Int)=baseContext.getSharedPreferences("pacing_${id}_$name",mode)
         }
-        val nodes=listOf("GRAVITY","FRICTION","BOUNCE").flatMap { branch -> (0..23).map { "$branch-$it" } }
-        ctx.getSharedPreferences("orbit_drive_v1",0).edit().putString("save",JSONObject().put("club",14).put("equippedClub",14).put("nodes",JSONArray(nodes)).toString()).commit()
+        val nodes=listOf("POWER","GRAVITY","FRICTION","BOUNCE").flatMap { branch -> (0..23).map { "$branch-$it" } }
+        ctx.getSharedPreferences("orbit_drive_v1",0).edit().putString("save",JSONObject().put("club",14).put("equippedClub",14).put("clubLevels",JSONArray(List(15){30})).put("relicLevels",JSONArray(List(34){if(it==0) 30 else 0})).put("nodes",JSONArray(nodes)).toString()).commit()
         return GameEngine(ctx,clock=clock).apply { abilityProgress.recordBest(80_000_000.0);buyAbilitySkill(AbilitySkills.byId.getValue("LIGHTNING-R0"));startCharge();tick(.5);release() }
     }
     @Test fun endgameShotHasVisibleLandingAndNaturalRollout() {

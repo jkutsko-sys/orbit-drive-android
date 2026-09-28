@@ -495,7 +495,7 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
         // Do not fast-forward a hovering ability through its real-time duration.
         if(g<=.01 && vy>=0) return 1.0
         val time=if(g>.01) (vy+sqrt(vy*vy+2*g*max(0.0,altitude)))/g else altitude/max(1.0,-vy)
-        return max(1.0,time/max(.08,airborneDeadline-shotElapsed)).coerceAtMost(100_000.0)
+        return max(1.0,time/max(.08,airborneDeadline-shotElapsed))
     }
     fun tick(step: Double) {
         frameRemainder+=step.coerceIn(0.0,.5)

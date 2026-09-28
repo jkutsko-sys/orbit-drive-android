@@ -1,6 +1,7 @@
 package com.orbitdrive.game
 
 import androidx.compose.ui.test.*
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Rule
@@ -10,7 +11,18 @@ class ResponsiveLayoutTest {
     @get:Rule val rule=createAndroidComposeRule<MainActivity>()
     private fun visible(node:SemanticsNodeInteraction):SemanticsNodeInteraction {
         try { node.assertIsDisplayed() } catch(e:AssertionError) { node.performScrollTo() }
-        return node.assertIsDisplayed()
+        repeat(8) {
+            try { return node.assertIsDisplayed() } catch(e:AssertionError) {
+                if(rule.onAllNodesWithTag("hubBody").fetchSemanticsNodes().isNotEmpty()) {
+                    rule.onNodeWithTag("hubBody").performSemanticsAction(SemanticsActions.ScrollBy) { it(0f,150f) }
+                } else {
+                    shot("failure")
+                    throw AssertionError("Not visible: ${node.fetchSemanticsNode().config}",e)
+                }
+            }
+        }
+        shot("failure")
+        throw AssertionError("Not visible after scrolling: ${node.fetchSemanticsNode().config}")
     }
     private fun shot(name:String) {
         rule.waitForIdle()
