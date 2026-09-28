@@ -74,7 +74,7 @@ class LaunchSmokeTest {
     }
 
     @Test fun settingsOpensFromCashHeader() {
-        rule.onNodeWithTag("settings").assertExists().performScrollTo().performClick()
+        rule.onNodeWithTag("settings").assertExists().performClick()
         rule.onNodeWithText("SETTINGS").assertExists()
         rule.onNodeWithTag("voucherCode").assertExists()
         rule.onNodeWithTag("redeem").assertExists()
