@@ -29,14 +29,15 @@ class LaunchSmokeTest {
     }
 
     @Test fun swingDoesNotCrash() {
-        rule.onNodeWithTag("launch").performScrollTo().assertExists().performTouchInput {
+        rule.onNodeWithTag("swingPower").assertExists()
+        rule.onNodeWithTag("launch").assertExists().performTouchInput {
             down(center)
             advanceEventTime(1200)
             up()
         }
         rule.waitForIdle()
         rule.onNodeWithText("ORBIT DRIVE").assertExists()
-        rule.onNodeWithTag("swingPower").assertExists()
+        rule.onNodeWithTag("rangeCanvas").assertExists()
     }
 
     @Test fun treeAndGolferRosterOpen() {

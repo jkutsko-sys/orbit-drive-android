@@ -473,7 +473,12 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
     private var airborneDeadline = 8.0
     private var rollDeadline = 0.0
     var playbackRate by mutableStateOf(1.0); private set
-    val landingWindow get() = phase == Phase.FLYING && vy < 0 && bounceCount < 3 && airborneDeadline-shotElapsed in 0.0..1.0
+    val landingWindow get(): Boolean {
+        if(phase!=Phase.FLYING || vy>=0 || bounceCount>=3 || altitude<=0) return false
+        val g=effectiveGravity()
+        val time=if(g>.01) 2*altitude/(sqrt(vy*vy+2*g*altitude)-vy) else altitude/max(1.0,-vy)
+        return time/max(1.0,playbackRate)<=1.0
+    }
     val bounces get() = bounceCount
     private fun effectiveGravity(): Double {
         val base=45 / (1 + level(Tech.GRAVITY)*.24 + (if(hasClubPerk(8)) .35 else 0.0) + relicLevels[3]*.06)
@@ -485,7 +490,7 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
         (if(electrifiedFor>0) .08 else 1.0)/(1+relicLevels[4]*.08)
     private fun pace(): Double {
         if(altitude<=0 && vy<=0) {
-            if(rollDeadline==0.0) rollDeadline=shotElapsed+4.0
+            if(rollDeadline==0.0) rollDeadline=shotElapsed+max(.6,min(3.0,24.0-shotElapsed))
             if(airliftFor>0 || (gravityPulseFor>0 && skillRank(FlightAbility.GRAVITY,9)>0)) return 1.0
             val remaining=ln(max(1.0,vx/1.9))/groundResistance()
             return max(1.0,remaining/max(.08,rollDeadline-shotElapsed))
@@ -608,7 +613,7 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
                 val landedImpact = vy < -1.0
                 if (landedImpact) {
                     bounceCount++
-                    airborneDeadline=shotElapsed+(if(bounceCount<=3) 1.8 else .08)
+                    airborneDeadline=shotElapsed+(if(bounceCount<=3) 1.8 else .06)
                     if(electrifiedFor>0 && bounceCount<=3) vx*=1+.03*skillRank(FlightAbility.LIGHTNING,8)
                     if (bounceArmed || thunderArmed) {
                         vy = -max(abs(vy) * 1.25, 35.0); vx *= 1.15

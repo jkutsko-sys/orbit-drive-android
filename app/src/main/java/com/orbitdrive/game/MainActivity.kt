@@ -146,7 +146,12 @@ class MainActivity : ComponentActivity() {
     val fontScale=LocalDensity.current.fontScale
     val scrollLayout=maxHeight<650.dp || fontScale>1.2f || maxWidth<340.dp
     val artHeight=(maxHeight-340.dp).coerceIn(240.dp,560.dp)
-    Column(Modifier.fillMaxSize().then(if(scrollLayout) Modifier.verticalScroll(rememberScrollState()) else Modifier).padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val rangeScroll=rememberScrollState()
+    LaunchedEffect(game.phase,scrollLayout,rangeScroll.maxValue) {
+        if(scrollLayout) rangeScroll.animateScrollTo(rangeScroll.maxValue)
+    }
+    Column(Modifier.fillMaxSize().padding(horizontal=12.dp,vertical=8.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.weight(1f).fillMaxWidth().then(if(scrollLayout) Modifier.verticalScroll(rangeScroll) else Modifier),verticalArrangement=Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column(Modifier.weight(1f)) {
                 Text("ORBIT DRIVE", fontSize = 25.sp, fontWeight = FontWeight.Black, color = Color.White)
@@ -171,7 +176,7 @@ class MainActivity : ComponentActivity() {
                     Spacer(Modifier.width(6.dp))
                     Text("CLUBHOUSE", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
-                Button(onClick=openCaddies,modifier=Modifier.heightIn(min=40.dp).weight(1f).testTag("caddyshack"),shape=RoundedCornerShape(12.dp),contentPadding=PaddingValues(4.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xff3b574b))) { Text("CADDIES",fontSize=10.sp) }
+                Button(onClick=openCaddies,modifier=Modifier.heightIn(min=40.dp).weight(1f).testTag("caddyshack"),shape=RoundedCornerShape(12.dp),contentPadding=PaddingValues(4.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xff3b574b),contentColor=Mint)) { Text("CADDIES",fontSize=10.sp) }
                 }
         if (game.expedition) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(game.engagement.expeditionTitle, Modifier.weight(1f), color = Mint, fontSize = 12.sp)
@@ -224,6 +229,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         Text(game.message, Modifier.fillMaxWidth(), color = Mint, fontSize = 13.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 1)
+        }
         Column(Modifier.fillMaxWidth(), verticalArrangement=Arrangement.spacedBy(5.dp)) {
             Column {
                 Text(game.club.name.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -379,7 +385,7 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
             drawLine(Color.White.copy(alpha = .17f), Offset(x, ground + 18), Offset(x + 25, ground + 18), strokeWidth = 2f)
         }
         if (sceneDistance < 450 && !game.expedition) drawProShop(game.engagement, ground, sceneDistance.toFloat(), size.width, size.height)
-        val ballX = size.width * if (atTee) .18f else .36f
+        val ballX = if(atTee) max(90f,size.width*.25f) else size.width*.36f
         val height = (ln(1 + max(0.0, sceneAltitude)) / ln(200.0)).toFloat() * size.height * .55f
         val ballY = max(size.height * .15f, ground - 10 - height)
         drawCircle(Color.Black.copy(alpha = .25f), radius = 12f, center = Offset(ballX, ground))
@@ -646,7 +652,7 @@ private fun nodePosition(node: ResearchNode): Offset {
                 }) { Text("${glyphs[branch.ordinal]} ${branch.title}", fontSize = 11.sp) }
             }
         }
-        Box(Modifier.fillMaxSize()) {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
             Canvas(Modifier.fillMaxSize()
                 .pointerInput(Unit) { detectTransformGestures { _, change, scale, _ ->
                     pan += change; zoom = (zoom * scale).coerceIn(.28f*displayDensity, 2.2f*displayDensity)
@@ -714,7 +720,8 @@ private fun nodePosition(node: ResearchNode): Offset {
                 TextButton(onClick = { zoom = (zoom * 1.3f).coerceAtMost(2.2f*displayDensity) }) { Text("+") }
             }
             selected?.let { node ->
-                Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().heightIn(max=260.dp).verticalScroll(rememberScrollState()).padding(12.dp).background(Card, RoundedCornerShape(17.dp)).padding(14.dp)) {
+                Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().heightIn(max=minOf(260.dp,maxHeight*.6f)).verticalScroll(rememberScrollState()).padding(12.dp).background(Card, RoundedCornerShape(17.dp)).padding(14.dp)) {
+                    TextButton(onClick={selected=null}) { Text("CLOSE DETAILS") }
                     Row { Text(listOf("↗", "☁", "◆", "≈", "ϟ", "✈", "◉", "★")[node.branch.ordinal], color = colors[node.branch.ordinal], fontSize = 22.sp)
                         Spacer(Modifier.width(10.dp)); Column { Text((if (node.tier in listOf(7, 15, 23)) "KEYSTONE • " else "") + node.name, color = Color.White, fontWeight = FontWeight.Black)
                             Text("${node.ability?.title ?: node.branch.title} • ${node.effect}", color = Mint, fontSize = 12.sp) } }

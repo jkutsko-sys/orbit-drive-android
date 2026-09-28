@@ -10,7 +10,7 @@ import org.junit.Test
 class ResponsiveLayoutTest {
     @get:Rule val rule=createAndroidComposeRule<MainActivity>()
     private fun visible(node:SemanticsNodeInteraction):SemanticsNodeInteraction {
-        try { node.assertIsDisplayed() } catch(e:AssertionError) { node.performScrollTo() }
+        try { node.performScrollTo() } catch(_:AssertionError) { } catch(_:IllegalStateException) { }
         repeat(8) {
             try { return node.assertIsDisplayed() } catch(e:AssertionError) {
                 if(rule.onAllNodesWithTag("hubBody").fetchSemanticsNodes().isNotEmpty()) {

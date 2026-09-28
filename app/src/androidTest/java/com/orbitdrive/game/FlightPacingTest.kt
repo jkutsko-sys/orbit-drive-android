@@ -25,7 +25,7 @@ class FlightPacingTest {
         repeat(2500) { time+=10;if(g.landingWindow) landingFrames++;g.tick(.01) }
         assertTrue("No visible combo window: $landingFrames",landingFrames>=50)
         assertTrue("No ground bounces",g.bounces>=3)
-        assertEquals("Natural completion took ${g.shotElapsed}s",Phase.LANDED,g.phase)
+        assertEquals("Natural completion took ${g.shotElapsed}s; bounces=${g.bounces}, altitude=${g.altitude}, speed=${g.speed}, playback=${g.playbackRate}",Phase.LANDED,g.phase)
         assertTrue(g.shotElapsed<=25.0);assertEquals(0.0,g.speed,.001)
     }
     @Test fun lightningDuringLandingTriggersThunderSkip() {
