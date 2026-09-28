@@ -106,3 +106,11 @@ Ability trees now use 40 illustrated nodes: an unlock and nine focused skills pe
 The Caddyshack is a separate popup on the Range screen. Eight original caddies provide an equipped bonus and tap assists (five per shot, two seconds apart). The first recruit is free immediately; subsequent random recruits arrive every four hours, with up to three banked. Cards grant 125 XP and the equipped caddy earns 5 XP per normal range shot; each level needs 125 XP, capped at level 120. Unequipped passive contribution is 25% at level 10, 60% at 40, and 100% at 80. Equipped and passive contributions never double count. Caddies and XP survive ascension.
 
 Music uses quieter original soft-key melodies and warm sine-wave chords at approximately 77 BPM, with no square-wave lead or kick. Existing volume preferences are retained. The Germane Slammer (1.2B cash, 1.78x launch, 1.40x cash) and Klyde Birkshire (8B cash, 2x launch, 1.52x cash) extend the sequential golfer roster with new tee portraits.
+
+
+## Labs 0.16 — Responsive layouts and complete flights
+Range controls reflow to available width; cramped/large-text layouts scroll instead of clipping the canvas and launch controls. Menu bodies, settings, ascension, and research details remain scrollable. Ability graphs expand with font scale and pan horizontally when needed; club stats wrap. Orientation is no longer locked.
+
+Flight pacing now compresses long airborne arcs, gives the first three landings readable combo windows, and accelerates the late bounces and natural roll-out. Physics completion requires ground speed below the stop threshold, never an elapsed-time cutoff. Ordinary shots target roughly 25 seconds; active sustained abilities can extend them. The previous 240-simulation-second truncation is removed, so powerful shots can earn additional distance from their formerly missing bounces/roll. Cooldowns and durations continue to use real time.
+
+Regression coverage includes high-power landing/combo/rollout, no timer cutoff during an active ability, frame-step consistency, and UI screenshots at default, enlarged text/display, and tablet/landscape dimensions.

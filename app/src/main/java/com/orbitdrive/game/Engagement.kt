@@ -30,7 +30,7 @@ internal class EngagementState(context: Context, private val now: () -> Long = S
     var shotCount by mutableIntStateOf(0); private set
     val discoveries = mutableStateListOf(false, false, false, false)
     val comboNames = listOf("Thunder Skip", "Slingshot Launch", "Double Cargo", "Magnetic Coast")
-    val comboHints = listOf("Lightning while falling within 35 m of ground: a charged rebound.", "Rocket during a plane carry: +35% ignition.", "Rank Storm Battery + Flight Beacon: aircraft adds a second payout ball.", "Rank Feather Field + Rolling Comet: Gravity pulse also removes ground drag.")
+    val comboHints = listOf("Lightning during the highlighted landing window: a charged rebound.", "Rocket during a plane carry: +35% ignition.", "Rank Storm Battery + Flight Beacon: aircraft adds a second payout ball.", "Rank Feather Field + Rolling Comet: Gravity pulse also removes ground drag.")
     var week by mutableStateOf(""); private set
     var weekPoints by mutableIntStateOf(0); private set
     var trackClaimed by mutableIntStateOf(0); private set

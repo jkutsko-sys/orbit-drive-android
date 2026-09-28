@@ -29,7 +29,7 @@ import kotlinx.coroutines.delay
         Surface(Modifier.fillMaxSize().safeDrawingPadding(), color = Color(0xff091022)) {
             Column(Modifier.padding(14.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column { Text("CLUBHOUSE", modifier = Modifier.testTag("clubhouseTitle"), fontSize = 25.sp, fontWeight = FontWeight.Black); Text("${state.tickets} RANGE TICKETS", color = Color(0xff80ffbf)) }
+                    Column(Modifier.weight(1f)) { Text("CLUBHOUSE", modifier = Modifier.testTag("clubhouseTitle"), fontSize = 25.sp, fontWeight = FontWeight.Black); Text("${state.tickets} RANGE TICKETS", color = Color(0xff80ffbf)) }
                     TextButton(onClick = onClose) { Text("CLOSE") }
                 }
                 Row(Modifier.horizontalScroll(rememberScrollState())) {

@@ -433,7 +433,7 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
     }
     fun release() {
         if (phase != Phase.CHARGING) return
-        phase = Phase.FLYING; distance = 0.0; previousDistance = 0.0; altitude = 1.0; flightTime = 0.0; shotElapsed = 0.0
+        phase = Phase.FLYING; distance = 0.0; previousDistance = 0.0; altitude = 1.0; flightTime = 0.0; shotElapsed = 0.0; airborneDeadline=8.0;rollDeadline=0.0;playbackRate=1.0
         bounceCount = 0; combo = 0; earned = 0.0; planeCarries = 0; secondSwingUsed = false; skyhookUsed = false; deepLiftUsed = false
         ghostTarget = if (expedition) engagement.expeditionBest else bestDistance
         for (i in abilityUses.indices) abilityUses[i] = 0
@@ -456,7 +456,7 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
         if(phase!=Phase.FLYING || !abilityUnlocked(a) || abilityCharges(a)<=0) return
         if(!abilityProgress.consume(a,abilityCapacity(a),abilityCooldown(a))) return
         fun r(i:Int)=skillRank(a,i)
-        usedLightning=true;if(vy<0 && altitude<35) thunderArmed=true
+        usedLightning=true;if(vy<0 && (altitude<35 || landingWindow)) thunderArmed=true
         lightningCharges=abilityCharges(a)
         val impulse=(60+(if(hasClubPerk(6)) 32 else 0))*(1+.12*r(1))*(1+abilityRelic(10)*.03)*(1+caddyBonus(2))*(1+min(3,strikeCount)*.15*r(7))
         vx+=impulse*multiplier*(1+relicLevels[5]*.08);vy+=impulse*.4
@@ -469,7 +469,39 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
         abilityCash(abilityRelic(14)*2.0+10*r(6));lightningFlashFor=.38;cue("lightning")
         speed=hypot(vx,vy);message=if(electrifiedFor>0) "ELECTRIFIED BALL" else "LIGHTNING BOOST"
     }
+    private var frameRemainder = 0.0
+    private var airborneDeadline = 8.0
+    private var rollDeadline = 0.0
+    var playbackRate by mutableStateOf(1.0); private set
+    val landingWindow get() = phase == Phase.FLYING && vy < 0 && bounceCount < 3 && airborneDeadline-shotElapsed in 0.0..1.0
+    val bounces get() = bounceCount
+    private fun effectiveGravity(): Double {
+        val base=45 / (1 + level(Tech.GRAVITY)*.24 + (if(hasClubPerk(8)) .35 else 0.0) + relicLevels[3]*.06)
+        val field=if(gravityPulseFor>0) { if(skillRank(FlightAbility.GRAVITY,7)>0) 0.0 else .2 } else if(airliftFor>0) 1-.08*skillRank(FlightAbility.AIRLIFT,4) else 1.0
+        return base*field-(if(nodeEffect(Tech.GRAVITY,8) && vy<0 && altitude>0) 4.0 else 0.0)
+    }
+    private fun groundResistance() = (.7/(1+level(Tech.FRICTION)*.35)) *
+        (if(nodeEffect(Tech.FRICTION,23)) .25 else if(nodeEffect(Tech.FRICTION,15)) .55 else 1.0) *
+        (if(electrifiedFor>0) .08 else 1.0)/(1+relicLevels[4]*.08)
+    private fun pace(): Double {
+        if(altitude<=0 && vy<=0) {
+            if(rollDeadline==0.0) rollDeadline=shotElapsed+4.0
+            if(airliftFor>0 || (gravityPulseFor>0 && skillRank(FlightAbility.GRAVITY,9)>0)) return 1.0
+            val remaining=ln(max(1.0,vx/1.9))/groundResistance()
+            return max(1.0,remaining/max(.08,rollDeadline-shotElapsed))
+        }
+        rollDeadline=0.0
+        val g=effectiveGravity()
+        // Do not fast-forward a hovering ability through its real-time duration.
+        if(g<=.01 && vy>=0) return 1.0
+        val time=if(g>.01) (vy+sqrt(vy*vy+2*g*max(0.0,altitude)))/g else altitude/max(1.0,-vy)
+        return max(1.0,time/max(.08,airborneDeadline-shotElapsed)).coerceAtMost(100_000.0)
+    }
     fun tick(step: Double) {
+        frameRemainder+=step.coerceIn(0.0,.5)
+        while(frameRemainder+1e-9>=1.0/120) { frameRemainder-=1.0/120; tickFrame(1.0/120) }
+    }
+    private fun tickFrame(step: Double) {
         val dt = step.coerceIn(0.0, 0.5)
         val wasBurning=afterburnerFor>0
         val wasPulsing = gravityPulseFor > 0
@@ -501,17 +533,22 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
             return
         }
         if (phase != Phase.FLYING) return
-        // Advance the original 240-second physics trajectory within 24.5 real seconds.
-        // Distance, collision speeds and rewards remain in simulation units; only playback time changes.
-        shotElapsed = (shotElapsed + dt).coerceAtMost(24.5)
-        val progress = shotElapsed / 24.5
-        val targetFlightTime = shotElapsed + (240.0 - 24.5) * progress * progress
-        while (phase == Phase.FLYING && flightTime + 1e-9 < targetFlightTime) {
-            val h = min(0.0125, targetFlightTime - flightTime)
+        shotElapsed += dt
+        var realLeft=dt
+        while(phase==Phase.FLYING && realLeft>1e-9) {
+            playbackRate=pace()
+            var h=min(max(.0125,playbackRate/240),realLeft*playbackRate)
+            val grounded=altitude<=0 && vy<=0
+            val g=if(grounded) 0.0 else effectiveGravity()
+            if(altitude>0 && vy<0 && g>.01) {
+                val impact=2*altitude/(sqrt(vy*vy+2*g*altitude)-vy)
+                if(impact>1e-8) h=min(h,impact)
+            }
+            realLeft-=h/playbackRate
             flightTime += h; previousDistance = distance
-            vy -= 45 / (1 + level(Tech.GRAVITY) * 0.24 + (if (hasClubPerk(8)) .35 else 0.0) + relicLevels[3] * .06) * h * (if (gravityPulseFor > 0) { if (skillRank(FlightAbility.GRAVITY,7)>0) 0.0 else .2 } else if(airliftFor>0) 1-.08*skillRank(FlightAbility.AIRLIFT,4) else 1.0)
+            val oldVy=vy
+            vy-=g*h
             if (nodeEffect(Tech.GRAVITY, 3) && flightTime in 1.0..2.0) vy += 3.0 * h
-            if (nodeEffect(Tech.GRAVITY, 8) && vy < 0 && altitude > 0) vy += 4.0 * h
             if (!deepLiftUsed && nodeEffect(Tech.GRAVITY, 7) && distance > 7000 && vy < 0) {
                 vy += 55.0; deepLiftUsed = true; message = "☁ Deep-space lift!"
             }
@@ -521,8 +558,12 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
             val airDrag = max(0.00005, 0.0016 - level(Tech.FRICTION) * 0.000075) * (if (hasClubPerk(5)) .7 else 1.0)
             val gravityDrag=if(gravityPulseFor>0) (1-.1*skillRank(FlightAbility.GRAVITY,4))*(1-abilityRelic(32)*.02) else 1.0
             val rocketDrag=if(afterburnerFor>0) 1-.08*skillRank(FlightAbility.ROCKET,5) else 1.0
-            vx *= (1-(if(airliftFor>0) 0.0 else airDrag*gravityDrag*rocketDrag)*h*(if(electrifiedFor>0) .08 else 1.0)).coerceAtLeast(0.0)
-            distance += vx * h; altitude += vy * h
+            val drag=(if(grounded && airliftFor<=0 && !(gravityPulseFor>0 && skillRank(FlightAbility.GRAVITY,9)>0)) groundResistance() else 0.0)+(if(airliftFor>0) 0.0 else airDrag*gravityDrag*rocketDrag)*(if(electrifiedFor>0) .08 else 1.0)
+            val oldVx=vx
+            vx*=exp(-drag*h)
+            distance += if(drag>1e-12) oldVx*(-expm1(-drag*h))/drag else oldVx*h
+            altitude += (oldVy+vy)*.5*h
+            if(altitude<1e-7 && vy<0) altitude=0.0
             obstacles.forEachIndexed { obstacleIndex, obstacle ->
                 if (previousDistance < obstacle.at && distance >= obstacle.at && altitude >= obstacle.height) shotClears++
                 if (previousDistance < obstacle.at && distance >= obstacle.at && altitude < obstacle.height) {
@@ -567,6 +608,7 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
                 val landedImpact = vy < -1.0
                 if (landedImpact) {
                     bounceCount++
+                    airborneDeadline=shotElapsed+(if(bounceCount<=3) 1.8 else .08)
                     if(electrifiedFor>0 && bounceCount<=3) vx*=1+.03*skillRank(FlightAbility.LIGHTNING,8)
                     if (bounceArmed || thunderArmed) {
                         vy = -max(abs(vy) * 1.25, 35.0); vx *= 1.15
@@ -587,19 +629,13 @@ internal class GameEngine(context: Context, val expedition: Boolean = false, sha
                     vx *= if (airliftFor > 0) 1.0 else max(0.6, 0.82 + level(Tech.FRICTION) * 0.012 + (if (nodeEffect(Tech.BOUNCE, 3)) 0.03 else 0.0))
                 } else {
                     vy = 0.0
-                    val groundDrag = (0.7 / (1 + level(Tech.FRICTION) * 0.35)) *
-                        (if (nodeEffect(Tech.FRICTION, 23)) .25 else if (nodeEffect(Tech.FRICTION, 15)) .55 else 1.0) *
-                        (if (electrifiedFor > 0) .08 else 1.0) / (1 + relicLevels[4] * .08)
-                    vx *= (1 - (if(airliftFor>0 || (gravityPulseFor>0 && skillRank(FlightAbility.GRAVITY,9)>0)) 0.0 else groundDrag) * h).coerceAtLeast(0.0)
                     if (vx < 2 && nodeEffect(Tech.POWER, 15) && !secondSwingUsed) {
-                        secondSwingUsed = true; vx = max(30.0, club.swing * .5); vy = 15.0; message = "↗ Second Swing!"
-                    } else if (vx < 2 || flightTime >= 240) finish()
+                        secondSwingUsed = true; airborneDeadline=shotElapsed+1.8; vx = max(30.0, club.swing * .5); vy = 15.0; message = "↗ Second Swing!"
+                    } else if (vx < 2) finish()
                 }
             }
-            speed = hypot(vx, vy)
-            if (flightTime >= 240) finish()
+            speed = if(phase==Phase.FLYING) hypot(vx, vy) else 0.0
         }
-        if (shotElapsed >= 24.5 && phase == Phase.FLYING) finish()
     }
     private fun finish() {
         if (phase != Phase.FLYING) return

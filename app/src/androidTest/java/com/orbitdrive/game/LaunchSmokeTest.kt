@@ -29,7 +29,7 @@ class LaunchSmokeTest {
     }
 
     @Test fun swingDoesNotCrash() {
-        rule.onNodeWithTag("launch").assertExists().performTouchInput {
+        rule.onNodeWithTag("launch").performScrollTo().assertExists().performTouchInput {
             down(center)
             advanceEventTime(1200)
             up()
@@ -108,13 +108,11 @@ class LaunchSmokeTest {
             prefs.edit().putString("save", setup).commit()
             val coarse = GameEngine(context)
             listOf(fine, coarse).forEach { game -> game.startCharge(); game.tick(.5); game.release() }
-            repeat(489) { fine.tick(.05) }
-            assertEquals(Phase.FLYING, fine.phase)
-            fine.tick(.05)
-            repeat(49) { coarse.tick(.5) }
+            repeat(500) { fine.tick(.05) }
+            repeat(50) { coarse.tick(.5) }
             assertEquals(Phase.LANDED, fine.phase)
             assertEquals(Phase.LANDED, coarse.phase)
-            assertTrue(fine.shotElapsed <= 24.5)
+            assertTrue(fine.shotElapsed <= 25.0)
             assertTrue(fine.distance > 7000)
             assertEquals(fine.distance, coarse.distance, fine.distance * .02)
             fine.startCharge()

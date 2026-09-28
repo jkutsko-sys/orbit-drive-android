@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.orbitdrive.game
 
 import android.os.Bundle
@@ -39,6 +41,7 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -92,11 +95,14 @@ class MainActivity : ComponentActivity() {
         if (hubOpen) EngagementHub(activeGame, onExpedition = { expeditionMode = true; tab = 0; hubOpen = false }, onClose = { hubOpen = false })
         if (settingsOpen) SettingsDialog(game, audio) { settingsOpen = false }
         Scaffold(containerColor = Night, bottomBar = {
-            NavigationBar(containerColor = Card) {
-                pages.forEachIndexed { index, title ->
-                    NavigationBarItem(selected = tab == index, onClick = { tab = index },
-                        icon = { Icon(listOf(Icons.Default.SportsGolf, Icons.Default.Science, Icons.Default.ShoppingBag, Icons.Default.Person, Icons.Default.AutoAwesome)[index], null) },
-                        label = { Text(title) })
+            Row(Modifier.fillMaxWidth().background(Card).navigationBarsPadding().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.SpaceEvenly) {
+                pages.forEachIndexed { index,title ->
+                    TextButton(onClick={tab=index},modifier=Modifier.heightIn(min=56.dp)) {
+                        Column(horizontalAlignment=Alignment.CenterHorizontally) {
+                            Icon(listOf(Icons.Default.SportsGolf,Icons.Default.Science,Icons.Default.ShoppingBag,Icons.Default.Person,Icons.Default.AutoAwesome)[index],null,tint=if(tab==index) Mint else Muted)
+                            Text(title,fontSize=11.sp,color=if(tab==index) Mint else Muted)
+                        }
+                    }
                 }
             }
         }) { padding ->
@@ -136,21 +142,16 @@ class MainActivity : ComponentActivity() {
             last = now
         }
     }
-    Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+    val fontScale=LocalDensity.current.fontScale
+    val scrollLayout=maxHeight<650.dp || fontScale>1.2f || maxWidth<340.dp
+    val artHeight=(maxHeight-340.dp).coerceIn(240.dp,560.dp)
+    Column(Modifier.fillMaxSize().then(if(scrollLayout) Modifier.verticalScroll(rememberScrollState()) else Modifier).padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column(Modifier.weight(1f)) {
                 Text("ORBIT DRIVE", fontSize = 25.sp, fontWeight = FontWeight.Black, color = Color.White)
                 Text(if (game.expedition) "WEEKLY EXPEDITION" else "THE INFINITE RANGE", fontSize = 10.sp, letterSpacing = 2.sp, color = Mint)
-                Row(horizontalArrangement=Arrangement.spacedBy(4.dp)) {
-                Button(onClick = openHub, modifier = Modifier.heightIn(min = 40.dp).weight(1f).testTag("clubhouse"),
-                    shape = RoundedCornerShape(12.dp), contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xff234d51), contentColor = Mint)) {
-                    Icon(Icons.Default.Assignment, null, Modifier.size(18.dp), tint = Color(0xffffd47a))
-                    Spacer(Modifier.width(6.dp))
-                    Text("CLUBHOUSE", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                }
-                Button(onClick=openCaddies,modifier=Modifier.heightIn(min=40.dp).weight(1f).testTag("caddyshack"),shape=RoundedCornerShape(12.dp),contentPadding=PaddingValues(4.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xff3b574b))) { Text("CADDIES",fontSize=10.sp) }
-                }
+
             }
             Column(horizontalAlignment = Alignment.End) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -162,6 +163,16 @@ class MainActivity : ComponentActivity() {
                 Text("BEST ${game.format(game.bestDistance)} m", fontSize = 10.sp, color = Muted)
             }
         }
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+                Button(onClick = openHub, modifier = Modifier.heightIn(min = 40.dp).weight(1f).testTag("clubhouse"),
+                    shape = RoundedCornerShape(12.dp), contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xff234d51), contentColor = Mint)) {
+                    Icon(Icons.Default.Assignment, null, Modifier.size(18.dp), tint = Color(0xffffd47a))
+                    Spacer(Modifier.width(6.dp))
+                    Text("CLUBHOUSE", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+                Button(onClick=openCaddies,modifier=Modifier.heightIn(min=40.dp).weight(1f).testTag("caddyshack"),shape=RoundedCornerShape(12.dp),contentPadding=PaddingValues(4.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xff3b574b))) { Text("CADDIES",fontSize=10.sp) }
+                }
         if (game.expedition) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(game.engagement.expeditionTitle, Modifier.weight(1f), color = Mint, fontSize = 12.sp)
             TextButton(onClick = exitExpedition, enabled = game.phase != Phase.FLYING && game.phase != Phase.CHARGING) { Text("EXIT EXPEDITION", fontSize = 10.sp) }
@@ -171,13 +182,14 @@ class MainActivity : ComponentActivity() {
                 .forEach { (label, value) ->
                     Column(Modifier.weight(1f).background(Card, RoundedCornerShape(10.dp)).padding(9.dp)) {
                         Text(label, fontSize = 9.sp, color = Muted)
-                        Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
+                        Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
         }
-        Box(Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(17.dp)).background(Card)
+        Box((if(scrollLayout) Modifier.height(artHeight) else Modifier.weight(1f)).fillMaxWidth().testTag("rangeCanvas").clip(RoundedCornerShape(17.dp)).background(Card)
             .pointerInput(game) { detectTapGestures(onTap = { game.tapRange() }) }) {
             RangeArt(game, Modifier.fillMaxSize())
+            if(game.landingWindow) Text("⚡ LANDING WINDOW • STRIKE FOR THUNDER BOUNCE",Modifier.align(Alignment.Center).background(Night.copy(alpha=.85f)).padding(10.dp),color=Color(0xffffd47a),fontSize=12.sp,textAlign=TextAlign.Center)
             if (game.phase == Phase.FLYING && game.ghostTarget > 0) Text(if (game.distance > game.ghostTarget) "NEW PERSONAL BEST!" else "PB GHOST • ${game.format(max(0.0, game.ghostTarget - game.distance))} m ahead",
                 Modifier.align(Alignment.BottomStart).padding(10.dp).background(Night.copy(alpha = .7f)).padding(5.dp), color = Color(0xffffd47a), fontSize = 10.sp)
             if (game.comboFlashFor > 0) Text("✦ ${game.comboMessage.uppercase()} ✦", Modifier.align(Alignment.Center).background(Night.copy(alpha = .8f)).padding(12.dp), color = Mint, fontWeight = FontWeight.Black)
@@ -191,7 +203,7 @@ class MainActivity : ComponentActivity() {
                 Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(12.dp)
                     .background(Color.Black.copy(alpha = .55f), RoundedCornerShape(11.dp)).padding(10.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("NEXT MILESTONE: ${planet.name.uppercase()}", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                        Text("NEXT MILESTONE: ${planet.name.uppercase()}", modifier=Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
                         Text("${game.format(planet.distance)} m", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Mint)
                     }
                     LinearProgressIndicator(progress = { (if(game.phase == Phase.FLYING) game.distance / planet.distance else 0.0).toFloat().coerceIn(0f, 1f) },
@@ -212,17 +224,17 @@ class MainActivity : ComponentActivity() {
             }
         }
         Text(game.message, Modifier.fillMaxWidth(), color = Mint, fontSize = 13.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 1)
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Column(Modifier.weight(1f).padding(end = 6.dp)) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement=Arrangement.spacedBy(5.dp)) {
+            Column {
                 Text(game.club.name.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Text("${game.launches} swings • ${game.relics} relics", fontSize = 10.sp, color = Muted)
             }
             if (game.phase == Phase.FLYING) {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     game.engagement.slots.forEach { ability ->
                         val ready = game.abilityReady(ability)
                         Button(onClick = { game.useAbility(ability) }, enabled = ready,
-                            modifier = Modifier.heightIn(min = 78.dp).width(82.dp), shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.heightIn(min = 78.dp).weight(1f), shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = abilityBackground(ability), contentColor = abilityTint(ability),
                                 disabledContainerColor = Color(0xff202b3b), disabledContentColor = Muted), contentPadding = PaddingValues(4.dp)) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -235,7 +247,7 @@ class MainActivity : ComponentActivity() {
                 }
             } else {
                 // Press starts charging immediately; lift releases. The pointer gesture also handles short taps.
-                Box(Modifier.width(170.dp).heightIn(min = 80.dp).background(Mint, RoundedCornerShape(15.dp)).testTag("launch")
+                Box(Modifier.fillMaxWidth().heightIn(min = 80.dp).background(Mint, RoundedCornerShape(15.dp)).testTag("launch")
                     .pointerInput(game) {
                         detectTapGestures(onPress = {
                             game.startCharge()
@@ -243,7 +255,7 @@ class MainActivity : ComponentActivity() {
                         })
                     }, contentAlignment = Alignment.Center) {
                     Column(Modifier.padding(top = 4.dp, bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FlowRow(verticalArrangement=Arrangement.spacedBy(4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             LinearProgressIndicator(progress = { game.charge.toFloat() }, modifier = Modifier.width(78.dp).height(5.dp), color = Color(0xfffeac5b), trackColor = Night.copy(alpha = .2f))
                             Text("PWR ${game.format(game.projectedSwingPower)}", color = Night, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.testTag("swingPower"))
                         }
@@ -254,6 +266,8 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
 }
 
 private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: Color, scale: Float) {
@@ -691,7 +705,7 @@ private fun nodePosition(node: ResearchNode): Offset {
                 TextButton(onClick = { zoom = (zoom * 1.3f).coerceAtMost(2.2f) }) { Text("+") }
             }
             selected?.let { node ->
-                Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp).background(Card, RoundedCornerShape(17.dp)).padding(14.dp)) {
+                Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().heightIn(max=260.dp).verticalScroll(rememberScrollState()).padding(12.dp).background(Card, RoundedCornerShape(17.dp)).padding(14.dp)) {
                     Row { Text(listOf("↗", "☁", "◆", "≈", "ϟ", "✈", "◉", "★")[node.branch.ordinal], color = colors[node.branch.ordinal], fontSize = 22.sp)
                         Spacer(Modifier.width(10.dp)); Column { Text((if (node.tier in listOf(7, 15, 23)) "KEYSTONE • " else "") + node.name, color = Color.White, fontWeight = FontWeight.Black)
                             Text("${node.ability?.title ?: node.branch.title} • ${node.effect}", color = Mint, fontSize = 12.sp) } }
@@ -721,7 +735,7 @@ private fun nodePosition(node: ResearchNode): Offset {
                 Text(game.clubPerks[id], color = Color(0xffffd787), fontSize = 11.sp)
                 Text("MASTERWORK ${game.clubMilestoneCount(id)}/3 • every 10 levels grants permanent +20% club power", color = Mint, fontSize = 10.sp)
                 Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
                     Pill("SWING ${game.format(club.swing * 1.15.pow(game.clubLevel(id)) * 1.2.pow(game.clubMilestoneCount(id)))}")
                     Pill("LOFT ${club.loft.toInt()}°")
                     Pill("SMASH ${"%.2f".format(club.smash)}×")
@@ -758,7 +772,7 @@ private fun nodePosition(node: ResearchNode): Offset {
                         drawGolferSprite(size.width / 2, size.height - 3f, id, player.look, 1.08f)
                     }
                     Spacer(Modifier.width(10.dp))
-                    Column {
+                    Column(Modifier.weight(1f)) {
                         Text(player.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                         Text(player.description, color = Muted, fontSize = 11.sp)
                     }
@@ -777,7 +791,7 @@ private fun nodePosition(node: ResearchNode): Offset {
 
 @Composable private fun AscendScreen(game: GameEngine) {
     var confirm by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Header("THE LONG DRIVE", "Earn relics to build permanent power. Ascension itself adds no multiplier.")
         CardBox {
             Spacer(Modifier.height(20.dp))
@@ -795,7 +809,7 @@ private fun nodePosition(node: ResearchNode): Offset {
         Spacer(Modifier.height(14.dp))
         Text("RELIC COLLECTION  •  ${game.relicBank} TO SPEND", color = Mint, fontWeight = FontWeight.Black)
         Spacer(Modifier.height(8.dp))
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             CardBox {
                 Text("RELIC DISCOVERY", color = Color.White, fontWeight = FontWeight.Black)
                 Text("Your first discovery is Titan Grip; later discoveries are random. Each discovery grants rank 1. Discoveries and ranks persist through ascension.", color = Muted, fontSize = 11.sp)
@@ -826,7 +840,7 @@ private fun nodePosition(node: ResearchNode): Offset {
                             drawLine(ball.stripe, Offset(size.width * .2f, size.height * .7f), Offset(size.width * .8f, size.height * .3f), strokeWidth = 3f)
                         }
                         Spacer(Modifier.width(10.dp))
-                        Column { Text(ball.name, color = Color.White, fontWeight = FontWeight.Bold)
+                        Column(Modifier.weight(1f)) { Text(ball.name, color = Color.White, fontWeight = FontWeight.Bold)
                             Text("${"%.2f".format(ball.power)}× launch • ${ball.description}", color = Mint, fontSize = 11.sp) }
                     }
                     if (index == game.selectedBall) Text("IN PLAY", color = Mint, fontSize = 11.sp, fontWeight = FontWeight.Black)
@@ -860,7 +874,7 @@ private fun nodePosition(node: ResearchNode): Offset {
     var code by remember { mutableStateOf("") }
     var result by remember { mutableStateOf("") }
     AlertDialog(onDismissRequest = close, title = { Text("SETTINGS") }, text = {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Music"); Switch(checked = audio.musicEnabled, onCheckedChange = audio::setMusic)
             }
