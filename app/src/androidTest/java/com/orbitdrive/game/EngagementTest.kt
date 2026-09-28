@@ -52,7 +52,7 @@ class EngagementTest {
         main.redeemVoucher("ADMIN")
         val state = main.engagement
         main.abilityProgress.recordBest(100.0)
-        main.buyAbilitySkill(AbilitySkills.byId.getValue("ROCKET-0"))
+        main.buyAbilitySkill(AbilitySkills.byId.getValue("ROCKET-R0"))
         main.equipAbility(0,FlightAbility.ROCKET)
         val mainCash = main.cash
         val exp = GameEngine(ctx,true,state,main)
@@ -75,10 +75,10 @@ class EngagementTest {
         game.equipAbility(0,FlightAbility.ROCKET)
         assertFalse(game.abilityUnlocked(FlightAbility.ROCKET))
         assertNotEquals(FlightAbility.ROCKET,game.engagement.slots[0])
-        game.buyAbilitySkill(AbilitySkills.byId.getValue("AIRLIFT-0"))
+        game.buyAbilitySkill(AbilitySkills.byId.getValue("AIRLIFT-R0"))
         assertFalse(game.abilityUnlocked(FlightAbility.AIRLIFT))
         game.abilityProgress.recordBest(100.0)
-        game.buyAbilitySkill(AbilitySkills.byId.getValue("AIRLIFT-0"))
+        game.buyAbilitySkill(AbilitySkills.byId.getValue("AIRLIFT-R0"))
         game.equipAbility(0,FlightAbility.AIRLIFT)
         game.startCharge(); game.tick(.5); game.release()
         val forward = game.forwardSpeed

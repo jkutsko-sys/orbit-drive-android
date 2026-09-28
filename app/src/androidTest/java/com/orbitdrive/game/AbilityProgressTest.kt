@@ -22,15 +22,20 @@ class AbilityProgressTest {
         p.recordBest(100.0); assertEquals(2,p.earned)
         p.recordBest(100.0); assertEquals(2,p.earned)
         p.recordBest(80_000_000.0); assertEquals(60,p.earned)
-        assertEquals(96,AbilitySkills.nodes.size)
-        assertEquals(96,AbilitySkills.nodes.map { it.id }.toSet().size)
-        assertTrue(AbilitySkills.nodes.all { it.parent == null || it.parent in AbilitySkills.byId })
-        (0..7).forEach { p.buy(AbilitySkills.byId.getValue("LIGHTNING-$it")) }
-        (8..14).forEach { p.buy(AbilitySkills.byId.getValue("LIGHTNING-$it")) }
-        assertTrue(p.owns("LIGHTNING-7"))
-        assertFalse(p.canBuy(AbilitySkills.byId.getValue("LIGHTNING-15")))
-        val before=p.available
-        p.buy(AbilitySkills.byId.getValue("LIGHTNING-15"));assertEquals(before,p.available)
+        assertEquals(40,AbilitySkills.nodes.size)
+        assertEquals(40,AbilitySkills.nodes.map { it.id }.toSet().size)
+        assertTrue(AbilitySkills.nodes.all { it.parent==null || it.parent in AbilitySkills.byId })
+        fun buy(id:Int,times:Int) { repeat(times) { p.buy(AbilitySkills.byId.getValue("LIGHTNING-R$id")) } }
+        buy(0,1)
+        assertFalse(p.canBuy(AbilitySkills.byId.getValue("LIGHTNING-R4")))
+        buy(1,5);buy(2,3);buy(4,5);buy(5,4)
+        assertEquals(18,p.treeLevel(FlightAbility.LIGHTNING))
+        buy(7,1)
+        assertTrue(p.owns("LIGHTNING-R7"))
+        assertFalse(p.canBuy(AbilitySkills.byId.getValue("LIGHTNING-R8")))
+        val before=p.available;buy(8,1);assertEquals(before,p.available)
+        buy(7,20);assertEquals(5,p.rank("LIGHTNING-R7"))
+        buy(1,20);assertEquals(10,p.rank("LIGHTNING-R1"))
         assertEquals(p.spent,AbilityProgress(ctx).spent)
         p.respec();assertEquals(60,p.available)
     }
@@ -63,7 +68,7 @@ class AbilityProgressTest {
         assertEquals(1.0,game.multiplier,.0001)
         assertEquals(19,game.abilityProgress.earned)
         assertEquals(game.cash,GameEngine(ctx).cash,.01)
-        game.buyAbilitySkill(AbilitySkills.byId.getValue("LIGHTNING-0"))
+        game.buyAbilitySkill(AbilitySkills.byId.getValue("LIGHTNING-R0"))
         assertTrue(game.ascendAvailable)
         game.ascend()
         assertEquals(1.0,game.multiplier,.0001)
@@ -77,8 +82,8 @@ class AbilityProgressTest {
         ctx.getSharedPreferences("orbit_drive_v1",0).edit().putString("save",JSONObject().put("club",14).put("equippedClub",14).toString()).commit()
         val game=GameEngine(ctx,clock={time})
         game.abilityProgress.recordBest(80_000_000.0)
-        game.buyAbilitySkill(AbilitySkills.byId.getValue("LIGHTNING-0"))
-        (8..15).forEach { game.buyAbilitySkill(AbilitySkills.byId.getValue("LIGHTNING-$it")) }
+        game.buyAbilitySkill(AbilitySkills.byId.getValue("LIGHTNING-R0"))
+        game.buyAbilitySkill(AbilitySkills.byId.getValue("LIGHTNING-R2"))
         game.startCharge();game.tick(.5);game.release()
         game.lightning();assertTrue(game.electrifiedFor>0)
         val charges=game.abilityCharges(FlightAbility.LIGHTNING)
@@ -88,6 +93,15 @@ class AbilityProgressTest {
         assertEquals(0.0,game.rangeSceneDistance,0.0)
         game.startCharge();assertEquals(0.0,game.rangeSceneDistance,0.0)
         game.release();assertEquals(charges,game.abilityCharges(FlightAbility.LIGHTNING))
+    }
+    @Test fun oldAllocationsRefundWithoutResettingTimers() {
+        val ctx=isolated();val time=2_000_000_000_000L
+        ctx.getSharedPreferences("orbit_abilities_v2",0).edit().putString("save",JSONObject()
+            .put("best",80_000_000.0).put("nodes",JSONArray(listOf("LIGHTNING-0","LIGHTNING-1")))
+            .put("recharge",JSONArray(listOf(JSONArray(listOf(time+45_000)),JSONArray(),JSONArray(),JSONArray()))).toString()).commit()
+        val p=AbilityProgress(ctx) { time }
+        assertEquals(60,p.available);assertEquals(0,p.spent);assertTrue(p.buildRefunded)
+        assertEquals(1,p.charges(FlightAbility.LIGHTNING,2))
     }
     @Test fun relicBonusesAreAppliedAndCapped() {
         val ctx=isolated()

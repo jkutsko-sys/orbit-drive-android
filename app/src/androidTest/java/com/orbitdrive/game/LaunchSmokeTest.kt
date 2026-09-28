@@ -16,6 +16,13 @@ import org.json.JSONArray
 
 class LaunchSmokeTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
+    private fun screenshot(name:String) {
+        rule.waitForIdle()
+        val instrumentation=InstrumentationRegistry.getInstrumentation()
+        val dir=java.io.File(instrumentation.targetContext.getExternalFilesDir(null),"screenshots").apply { mkdirs() }
+        val bitmap=instrumentation.uiAutomation.takeScreenshot() ?: error("No screenshot")
+        java.io.File(dir,"$name.png").outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it) }
+    }
 
     @Test fun swingDoesNotCrash() {
         rule.onNodeWithTag("launch").assertExists().performTouchInput {
@@ -50,7 +57,15 @@ class LaunchSmokeTest {
         rule.onNodeWithTag("clubhouse").performClick()
         rule.onNodeWithText("Skill Trees").performScrollTo().performClick()
         rule.onNodeWithText("ABILITY SKILL TREES").assertExists()
-        rule.onNodeWithText("Thunder").assertExists()
+        rule.onNodeWithText("Stormcaller").assertExists()
+        screenshot("ability-tree")
+    }
+
+    @Test fun caddyshackOpens() {
+        rule.onNodeWithTag("caddyshack").performClick()
+        rule.onNodeWithText("THE CADDYSHACK").assertExists()
+        rule.onNodeWithText("MEET A RANDOM CADDY").assertExists()
+        screenshot("caddyshack")
     }
 
     @Test fun settingsOpensFromCashHeader() {

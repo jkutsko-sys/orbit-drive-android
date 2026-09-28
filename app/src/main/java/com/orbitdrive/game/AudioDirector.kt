@@ -10,13 +10,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlin.math.PI
 import kotlin.math.sin
+import kotlin.math.exp
 
-/** Original procedural chiptune: three area arrangements and short event accents. */
+/** Original soft electric-key melody and warm sustained chords, with three area variations. */
 internal class AudioDirector(context: Context) {
     private val prefs = context.getSharedPreferences("orbit_audio", Context.MODE_PRIVATE)
     var musicEnabled by mutableStateOf(prefs.getBoolean("music", true)); private set
     var effectsEnabled by mutableStateOf(prefs.getBoolean("effects", true)); private set
-    var musicVolume by mutableFloatStateOf(prefs.getFloat("musicVolume", .25f)); private set
+    var musicVolume by mutableFloatStateOf(prefs.getFloat("musicVolume", .16f)); private set
     var effectsVolume by mutableFloatStateOf(prefs.getFloat("effectsVolume", .45f)); private set
     @Volatile private var playing = true
     @Volatile private var area = 0
@@ -55,13 +56,17 @@ internal class AudioDirector(context: Context) {
             for (i in buffer.indices) {
                 val incoming = accent
                 if (incoming != 0) { effect = incoming; effectAge = 0; accent = 0 }
-                val beat = ((sample / (rate * .18)).toInt() % 16)
-                val note = notes[area][beat]
                 val time = sample.toDouble() / rate
-                val bass = notes[area][(beat / 4) * 4] / 2.0
-                val pulse = if (sin(2 * PI * note * time) > 0) 1.0 else -1.0
-                val kick = if (beat % 4 == 0) sin(2 * PI * 65 * time) * .13 else 0.0
-                val music = if (musicEnabled) (pulse * .15 + sin(2 * PI * bass * time) * .15 + kick) * musicVolume else 0.0
+                val stepLength=.78 // Relaxed ~77 BPM phrase, no square-wave lead or kick drum.
+                val phraseStep=((time/stepLength).toLong()%16).toInt()
+                val note=notes[area][phraseStep].toDouble()
+                val age=time%stepLength
+                val envelope=(1-exp(-age*24))*exp(-age*3.5)
+                val keys=(sin(2*PI*note*time)+.18*sin(2*PI*note*2*time))*.075*envelope
+                val chord=notes[area][(phraseStep/4)*4]/2.0
+                val pad=(sin(2*PI*chord*time)+.4*sin(2*PI*chord*1.5*time)+.25*sin(2*PI*chord*2*time))*.026
+                val swell=sin(PI*(time%(stepLength*4))/(stepLength*4))
+                val music=if(musicEnabled) (keys+pad*swell)*musicVolume else 0.0
                 val freq = when (effect) { 1 -> 180.0 + effectAge * .04; 2 -> 780.0 - effectAge * .06; 3 -> 90.0 + effectAge * .015; 4 -> 340.0; 5 -> 660.0; else -> 150.0 }
                 val duration = if (effect == 3) rate / 2 else rate / 5
                 val fx = if (effectsEnabled && effect != 0 && effectAge < duration)

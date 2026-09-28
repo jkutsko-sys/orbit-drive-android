@@ -97,3 +97,12 @@ Base timing (real time, including while offline): Lightning stores 2 charges and
 The exponential power multiplier from lifetime ascension currency is removed. Ascension itself grants no stats. There are now 34 relics, including 24 ability modifiers, with the new relics capped at 6 or 10 ranks. Existing original relic ranks are retained. The first new collection discovery guarantees Titan Grip; subsequent discoveries are random. A discovery now grants rank 1 immediately, and the larger collection uses a gentler discovery cost curve. Existing low-distance saves can feel weaker after the removal of the automatic multiplier; ability builds and relic upgrades supply the replacement progression.
 
 The app remains Orbit Drive Labs with the same signing key and application ID. This APK updates the existing Labs save; the original preview app stays separate.
+
+
+## Labs 0.15 — Ranked trees and the Caddyshack
+
+Ability trees now use 40 illustrated nodes: an unlock and nine focused skills per ability. Main skills support 10 ranks; final keystones support five, with one final keystone per ability. The second and third rows require tree levels 8 and 18 plus rank 3 in the connected parent. Each rank counts as one tree level. Higher ranks cost more points. Existing milestone points are preserved and prior ability allocations are refunded automatically, while cooldowns and durations remain saved.
+
+The Caddyshack is a separate popup on the Range screen. Eight original caddies provide an equipped bonus and tap assists (five per shot, two seconds apart). The first recruit is free immediately; subsequent random recruits arrive every four hours, with up to three banked. Cards grant 125 XP and the equipped caddy earns 5 XP per normal range shot; each level needs 125 XP, capped at level 120. Unequipped passive contribution is 25% at level 10, 60% at 40, and 100% at 80. Equipped and passive contributions never double count. Caddies and XP survive ascension.
+
+Music uses quieter original soft-key melodies and warm sine-wave chords at approximately 77 BPM, with no square-wave lead or kick. Existing volume preferences are retained. The Germane Slammer (1.2B cash, 1.78x launch, 1.40x cash) and Klyde Birkshire (8B cash, 2x launch, 1.52x cash) extend the sequential golfer roster with new tee portraits.

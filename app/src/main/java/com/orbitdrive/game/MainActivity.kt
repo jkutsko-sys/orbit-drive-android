@@ -75,11 +75,12 @@ class MainActivity : ComponentActivity() {
 @Composable private fun OrbitApp(game: GameEngine, expedition: GameEngine, audio: AudioDirector, previousCrash: String?, clearCrash: () -> Unit) {
     var tab by remember { mutableIntStateOf(0) }
     var hubOpen by remember { mutableStateOf(false) }
+    var caddiesOpen by remember { mutableStateOf(false) }
     var expeditionMode by remember { mutableStateOf(false) }
     val activeGame = if (expeditionMode) expedition else game
     var settingsOpen by remember { mutableStateOf(false) }
     LaunchedEffect(activeGame, activeGame.soundEventId) { if (activeGame.soundEventId > 0) audio.cue(activeGame.soundCue) }
-    LaunchedEffect(activeGame.distance) { audio.setArea(activeGame.distance) }
+    LaunchedEffect(activeGame.rangeSceneDistance) { audio.setArea(activeGame.rangeSceneDistance) }
     var crash by remember { mutableStateOf(previousCrash) }
     if (crash != null) AlertDialog(onDismissRequest = { crash = null; clearCrash() },
         title = { Text("Previous launch ended unexpectedly") },
@@ -87,6 +88,7 @@ class MainActivity : ComponentActivity() {
         confirmButton = { TextButton(onClick = { crash = null; clearCrash() }) { Text("Close") } })
     val pages = listOf("Range", "Research", "Clubs", "Golfer", "Ascend")
     MaterialTheme(colorScheme = darkColorScheme(primary = Mint, surface = Card, background = Night)) {
+        if(caddiesOpen) Caddyshack(activeGame) { caddiesOpen=false }
         if (hubOpen) EngagementHub(activeGame, onExpedition = { expeditionMode = true; tab = 0; hubOpen = false }, onClose = { hubOpen = false })
         if (settingsOpen) SettingsDialog(game, audio) { settingsOpen = false }
         Scaffold(containerColor = Night, bottomBar = {
@@ -100,7 +102,7 @@ class MainActivity : ComponentActivity() {
         }) { padding ->
             Box(Modifier.fillMaxSize().padding(padding)) {
                 when (tab) {
-                    0 -> RangeScreen(activeGame, true, openSettings = { settingsOpen = true }, openHub = { if (activeGame.phase != Phase.FLYING && activeGame.phase != Phase.CHARGING) game.engagement.refreshWeek(); hubOpen = true }, exitExpedition = { expeditionMode = false })
+                    0 -> RangeScreen(activeGame, true, openCaddies={caddiesOpen=true}, openSettings = { settingsOpen = true }, openHub = { if (activeGame.phase != Phase.FLYING && activeGame.phase != Phase.CHARGING) game.engagement.refreshWeek(); hubOpen = true }, exitExpedition = { expeditionMode = false })
                     1 -> ResearchScreen(game)
                     2 -> ClubsScreen(game)
                     3 -> GolferScreen(game)
@@ -124,7 +126,7 @@ class MainActivity : ComponentActivity() {
     Text(text, modifier.background(Color.White.copy(alpha = .07f), RoundedCornerShape(9.dp)).padding(9.dp), color = Color.White, fontSize = 12.sp)
 }
 
-@Composable private fun RangeScreen(game: GameEngine, visible: Boolean, openSettings: () -> Unit, openHub: () -> Unit, exitExpedition: () -> Unit) {
+@Composable private fun RangeScreen(game: GameEngine, visible: Boolean, openCaddies:()->Unit, openSettings: () -> Unit, openHub: () -> Unit, exitExpedition: () -> Unit) {
     LaunchedEffect(game, visible) {
         var last = System.nanoTime()
         while (visible) {
@@ -136,15 +138,18 @@ class MainActivity : ComponentActivity() {
     }
     Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
+            Column(Modifier.weight(1f)) {
                 Text("ORBIT DRIVE", fontSize = 25.sp, fontWeight = FontWeight.Black, color = Color.White)
                 Text(if (game.expedition) "WEEKLY EXPEDITION" else "THE INFINITE RANGE", fontSize = 10.sp, letterSpacing = 2.sp, color = Mint)
-                Button(onClick = openHub, modifier = Modifier.heightIn(min = 40.dp).testTag("clubhouse"),
-                    shape = RoundedCornerShape(12.dp), contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                Row(horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+                Button(onClick = openHub, modifier = Modifier.heightIn(min = 40.dp).weight(1f).testTag("clubhouse"),
+                    shape = RoundedCornerShape(12.dp), contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xff234d51), contentColor = Mint)) {
                     Icon(Icons.Default.Assignment, null, Modifier.size(18.dp), tint = Color(0xffffd47a))
                     Spacer(Modifier.width(6.dp))
-                    Text("CONTRACTS • HOME", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("CLUBHOUSE", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+                Button(onClick=openCaddies,modifier=Modifier.heightIn(min=40.dp).weight(1f).testTag("caddyshack"),shape=RoundedCornerShape(12.dp),contentPadding=PaddingValues(4.dp),colors=ButtonDefaults.buttonColors(containerColor=Color(0xff3b574b))) { Text("CADDIES",fontSize=10.sp) }
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
@@ -171,7 +176,7 @@ class MainActivity : ComponentActivity() {
                 }
         }
         Box(Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(17.dp)).background(Card)
-            .pointerInput(game) { detectTapGestures(onTap = { if (game.phase == Phase.FLYING && FlightAbility.AIRLIFT in game.engagement.slots) game.useAbility(FlightAbility.AIRLIFT) }) }) {
+            .pointerInput(game) { detectTapGestures(onTap = { game.tapRange() }) }) {
             RangeArt(game, Modifier.fillMaxSize())
             if (game.phase == Phase.FLYING && game.ghostTarget > 0) Text(if (game.distance > game.ghostTarget) "NEW PERSONAL BEST!" else "PB GHOST • ${game.format(max(0.0, game.ghostTarget - game.distance))} m ahead",
                 Modifier.align(Alignment.BottomStart).padding(10.dp).background(Night.copy(alpha = .7f)).padding(5.dp), color = Color(0xffffd47a), fontSize = 10.sp)
@@ -275,7 +280,9 @@ private fun DrawScope.drawGolferSprite(x: Float, ground: Float, id: Int, shirt: 
         drawCircle(Color(0xfff3dcc0), 2f * scale, p(13f, -57f))
         drawLine(dark, p(6f, -53f), p(12f, -52f), strokeWidth = 1.5f * scale)
     } else {
+        if(id==10) drawRoundRect(Color(0xff805536),p(-13f,-65f),Size(28f*scale,23f*scale))
         drawCircle(skin, 11f * scale, p(0f, -60f))
+        if(id==9) drawLine(Color(0xffe6ae59),p(-8f,-51f),p(8f,-51f),4f*scale)
         drawRoundRect(dark, topLeft = p(-12f, -72f), size = Size(24f * scale, 7f * scale), cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f * scale))
         drawLine(dark, p(3f, -68f), p(18f, -68f), strokeWidth = 3f * scale)
         drawCircle(dark, 1.3f * scale, p(-4f, -61f)); drawCircle(dark, 1.3f * scale, p(5f, -61f))
@@ -365,6 +372,7 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
                 drawCircle(Color(0xffffd47a).copy(alpha = .55f), 13f, Offset(ghostX, ground - 65), style = Stroke(2f))
             }
         }
+        if(game.caddyFlashFor>0) drawCircle(Color(0xffffd47a).copy(alpha=.6f),26f,Offset(ballX,ballY),style=Stroke(3f))
         if (!atTee && game.airliftFor > 0) {
             repeat(3) { i -> drawLine(Color(0xff7be7ee).copy(alpha = .7f-i*.15f), Offset(ballX-15,ballY+20+i*8), Offset(ballX,ballY+12+i*8), strokeWidth=3f) }
         }
@@ -453,6 +461,9 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
             }
         }
         if (atTee) {
+            if(!game.expedition && game.caddies.selected>=0) {
+                val c=game.caddies;drawCaddySprite(c.selected,ballX+48f,ground,.85f,c.roster[c.selected].color)
+            }
             val gx = ballX - 38f
             drawGolferSprite(gx, ground, game.selectedGolfer, game.golfer.look, 1.12f)
             val clubColor = if (game.equippedClub == game.clubs.lastIndex) Color(0xffe7a6ff)
