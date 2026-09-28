@@ -49,7 +49,7 @@ class LaunchSmokeTest {
         rule.onNodeWithText("GOLF BALLS").assertExists()
     }
     @Test fun clubhouseAndWeeklyExpeditionOpen() {
-        rule.onNodeWithTag("clubhouse").performClick()
+        rule.onNodeWithTag("clubhouse").performScrollTo().performClick()
         rule.onNodeWithTag("clubhouseTitle").assertExists()
         rule.onNodeWithText("Weekly").performScrollTo().performClick()
         rule.onNodeWithTag("enterExpedition").performClick()
@@ -59,7 +59,7 @@ class LaunchSmokeTest {
     }
 
     @Test fun dedicatedAbilityTreesOpen() {
-        rule.onNodeWithTag("clubhouse").performClick()
+        rule.onNodeWithTag("clubhouse").performScrollTo().performClick()
         rule.onNodeWithText("Skill Trees").performScrollTo().performClick()
         rule.onNodeWithText("ABILITY SKILL TREES").assertExists()
         rule.onNodeWithText("Stormcaller").assertExists()
@@ -67,14 +67,14 @@ class LaunchSmokeTest {
     }
 
     @Test fun caddyshackOpens() {
-        rule.onNodeWithTag("caddyshack").performClick()
+        rule.onNodeWithTag("caddyshack").performScrollTo().performClick()
         rule.onNodeWithText("THE CADDYSHACK").assertExists()
         rule.onNodeWithText("MEET A RANDOM CADDY").assertExists()
         screenshot("caddyshack")
     }
 
     @Test fun settingsOpensFromCashHeader() {
-        rule.onNodeWithTag("settings").assertExists().performClick()
+        rule.onNodeWithTag("settings").assertExists().performScrollTo().performClick()
         rule.onNodeWithText("SETTINGS").assertExists()
         rule.onNodeWithTag("voucherCode").assertExists()
         rule.onNodeWithTag("redeem").assertExists()
