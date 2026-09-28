@@ -212,14 +212,14 @@ class MainActivity : ComponentActivity() {
                 color = Color(0xff7be7ee), fontWeight = FontWeight.Black, fontSize = 11.sp)
             (if (game.phase == Phase.FLYING) game.nextPlanet else game.planets.firstOrNull())?.let { planet ->
                 Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(12.dp)
-                    .background(Color.Black.copy(alpha = .55f), RoundedCornerShape(11.dp)).padding(10.dp)) {
+                    .background(Color.Black.copy(alpha = .55f), RoundedCornerShape(11.dp)).padding(if(scrollLayout) 6.dp else 10.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("NEXT MILESTONE: ${planet.name.uppercase()}", modifier=Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                        Text("${if(scrollLayout) "NEXT: " else "NEXT MILESTONE: "}${planet.name.uppercase()}", modifier=Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White, maxLines=1, overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                         Text("${game.format(planet.distance)} m", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Mint)
                     }
                     LinearProgressIndicator(progress = { (if(game.phase == Phase.FLYING) game.distance / planet.distance else 0.0).toFloat().coerceIn(0f, 1f) },
-                        modifier = Modifier.fillMaxWidth().padding(top = 7.dp).height(5.dp), color = Mint, trackColor = Color.White.copy(alpha = .2f))
-                    Text("REACH IT FOR A BOUNTY • REPEATS EVERY SHOT", fontSize = 9.sp, color = Muted)
+                        modifier = Modifier.fillMaxWidth().padding(top = if(scrollLayout) 3.dp else 7.dp).height(5.dp), color = Mint, trackColor = Color.White.copy(alpha = .2f))
+                    if(!scrollLayout) Text("REACH IT FOR A BOUNTY • REPEATS EVERY SHOT", fontSize = 9.sp, color = Muted)
                 }
             }
             if (game.phase == Phase.FLYING && game.firstMilestoneFor > 0) {
@@ -234,7 +234,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        Text(game.message, Modifier.fillMaxWidth(), color = Mint, fontSize = 13.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 1)
+        Text(game.message, Modifier.fillMaxWidth(), color = Mint, fontSize = 13.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 2)
         }
         Column(Modifier.fillMaxWidth(), verticalArrangement=Arrangement.spacedBy(5.dp)) {
             Column {
