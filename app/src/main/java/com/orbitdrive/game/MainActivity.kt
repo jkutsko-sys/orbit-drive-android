@@ -336,6 +336,12 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
     val sceneDistance = game.rangeSceneDistance
     val sceneAltitude = if (atTee) 0.0 else game.altitude
     Canvas(modifier) {
+        val physicalSize=size
+        val unit=density
+        withTransform({
+            inset(0f,0f,physicalSize.width-physicalSize.width/unit,physicalSize.height-physicalSize.height/unit)
+            scale(unit,unit,pivot=Offset.Zero)
+        }) {
         withTransform({ scale(1.18f, 1.18f, pivot = Offset(size.width * .30f, size.height * .50f)) }) {
         val space = sceneDistance > 7000
         drawRect(brush = Brush.verticalGradient(if (space) listOf(Color(0xff08051c), Color(0xff201038)) else listOf(Color(0xff194d79), Color(0xff66b7bc))))
@@ -599,6 +605,8 @@ private fun DrawScope.drawPlanetSprite(id: Int, center: Offset, radius: Float, c
 }
 }
 
+}
+
 private fun nodePosition(node: ResearchNode): Offset {
     val branchIndex = Tech.entries.filter { it != Tech.LIGHTNING }.indexOf(node.branch)
     val angle = -PI / 2 + branchIndex * 2 * PI / 7 + when (node.tier) {
@@ -612,8 +620,9 @@ private fun nodePosition(node: ResearchNode): Offset {
 
 @Composable private fun ResearchScreen(game: GameEngine) {
     val revision = game.revision
+    val displayDensity=LocalDensity.current.density
     var selected by remember { mutableStateOf<ResearchNode?>(null) }
-    var zoom by remember { mutableFloatStateOf(.78f) }
+    var zoom by remember { mutableFloatStateOf(.78f*displayDensity) }
     var pan by remember { mutableStateOf(Offset.Zero) }
     val transition = rememberInfiniteTransition(label = "affordable discoveries")
     val pulse by transition.animateFloat(initialValue = .22f, targetValue = .62f,
@@ -626,21 +635,21 @@ private fun nodePosition(node: ResearchNode): Offset {
                 Text("RESEARCH CONSTELLATION", color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.Black)
                 Text("${ResearchTree.all.count(game::owns)}/${ResearchTree.all.size} • $${game.format(game.cash)} • drag to explore", color = Mint, fontSize = 11.sp)
             }
-            TextButton(onClick = { pan = Offset.Zero; zoom = .78f }) { Text("CENTER") }
+            TextButton(onClick = { pan = Offset.Zero; zoom = .78f*displayDensity }) { Text("CENTER") }
         }
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             val glyphs = listOf("↗", "☁", "◆", "≈", "ϟ", "✈", "◉", "★")
             Tech.entries.filter { it != Tech.LIGHTNING }.forEach { branch ->
                 TextButton(onClick = {
-                    val point = nodePosition(ResearchTree.nodes(branch)[12]); zoom = .78f; pan = Offset(-point.x * zoom, -point.y * zoom)
+                    val point = nodePosition(ResearchTree.nodes(branch)[12]); zoom = .78f*displayDensity; pan = Offset(-point.x * zoom, -point.y * zoom)
                 }) { Text("${glyphs[branch.ordinal]} ${branch.title}", fontSize = 11.sp) }
             }
         }
         Box(Modifier.fillMaxSize()) {
             Canvas(Modifier.fillMaxSize()
                 .pointerInput(Unit) { detectTransformGestures { _, change, scale, _ ->
-                    pan += change; zoom = (zoom * scale).coerceIn(.28f, 2.2f)
+                    pan += change; zoom = (zoom * scale).coerceIn(.28f*displayDensity, 2.2f*displayDensity)
                 } }
                 .pointerInput(zoom, pan) { detectTapGestures { point ->
                     val center = Offset(size.width / 2f, size.height / 2f) + pan
@@ -689,7 +698,7 @@ private fun nodePosition(node: ResearchNode): Offset {
                         paint.color = if (game.owns(node)) android.graphics.Color.rgb(9, 16, 34) else android.graphics.Color.WHITE
                         paint.textSize = (if (node.tier in listOf(7, 15, 23)) 20f else 14f) * zoom
                         canvas.nativeCanvas.drawText(if (node.tier in listOf(7, 15, 23)) "✦" else node.ability?.icon ?: glyphs[node.branch.ordinal], pos.x, pos.y + 6f * zoom, paint)
-                        if (zoom >= .72f && node.tier == 0) {
+                        if (zoom >= .72f*displayDensity && node.tier == 0) {
                             paint.color = android.graphics.Color.WHITE; paint.textSize = 12f * zoom
                             canvas.nativeCanvas.drawText(node.branch.title, pos.x, pos.y - 28f * zoom, paint)
                         }
@@ -701,8 +710,8 @@ private fun nodePosition(node: ResearchNode): Offset {
                 Text("TAP A NODE", color = Muted, fontSize = 10.sp)
             }
             Row(Modifier.align(Alignment.TopEnd).padding(8.dp)) {
-                TextButton(onClick = { zoom = (zoom / 1.3f).coerceAtLeast(.28f) }) { Text("−") }
-                TextButton(onClick = { zoom = (zoom * 1.3f).coerceAtMost(2.2f) }) { Text("+") }
+                TextButton(onClick = { zoom = (zoom / 1.3f).coerceAtLeast(.28f*displayDensity) }) { Text("−") }
+                TextButton(onClick = { zoom = (zoom * 1.3f).coerceAtMost(2.2f*displayDensity) }) { Text("+") }
             }
             selected?.let { node ->
                 Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().heightIn(max=260.dp).verticalScroll(rememberScrollState()).padding(12.dp).background(Card, RoundedCornerShape(17.dp)).padding(14.dp)) {
@@ -769,7 +778,7 @@ private fun nodePosition(node: ResearchNode): Offset {
             CardBox {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Canvas(Modifier.size(width = 78.dp, height = 92.dp)) {
-                        drawGolferSprite(size.width / 2, size.height - 3f, id, player.look, 1.08f)
+                        drawGolferSprite(size.width / 2, size.height - 3f, id, player.look, 1.08f*density)
                     }
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
@@ -876,12 +885,12 @@ private fun nodePosition(node: ResearchNode): Offset {
     AlertDialog(onDismissRequest = close, title = { Text("SETTINGS") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Music"); Switch(checked = audio.musicEnabled, onCheckedChange = audio::setMusic)
+                Text("Music",Modifier.weight(1f)); Switch(checked = audio.musicEnabled, onCheckedChange = audio::setMusic)
             }
             Text("Music volume")
             Slider(value = audio.musicVolume, onValueChange = audio::adjustMusicVolume)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Sound effects"); Switch(checked = audio.effectsEnabled, onCheckedChange = audio::setEffects)
+                Text("Sound effects",Modifier.weight(1f)); Switch(checked = audio.effectsEnabled, onCheckedChange = audio::setEffects)
             }
             Text("Effects volume")
             Slider(value = audio.effectsVolume, onValueChange = audio::adjustEffectsVolume)

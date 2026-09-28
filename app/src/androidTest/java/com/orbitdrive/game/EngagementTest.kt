@@ -48,14 +48,15 @@ class EngagementTest {
     }
     @Test fun rocketHasOneUseAndExpeditionLeavesMainSaveAlone() {
         val ctx = isolated()
-        val main = GameEngine(ctx)
+        var time=2_000_000_000_000L
+        val main = GameEngine(ctx,clock={time})
         main.redeemVoucher("ADMIN")
         val state = main.engagement
         main.abilityProgress.recordBest(100.0)
         main.buyAbilitySkill(AbilitySkills.byId.getValue("ROCKET-R0"))
         main.equipAbility(0,FlightAbility.ROCKET)
         val mainCash = main.cash
-        val exp = GameEngine(ctx,true,state,main)
+        val exp = GameEngine(ctx,true,state,main,clock={time})
         exp.startCharge(); exp.tick(.5); exp.release()
         val before = exp.speed
         exp.useAbility(FlightAbility.ROCKET)
@@ -63,7 +64,7 @@ class EngagementTest {
         val fired = exp.speed
         exp.useAbility(FlightAbility.ROCKET)
         assertEquals(fired,exp.speed,0.0001)
-        repeat(490) { exp.tick(.05) }
+        repeat(500) { time+=50;exp.tick(.05) }
         assertEquals(Phase.LANDED,exp.phase)
         assertEquals(mainCash,GameEngine(ctx).cash,.01)
         assertEquals(0,GameEngine(ctx).launches)
