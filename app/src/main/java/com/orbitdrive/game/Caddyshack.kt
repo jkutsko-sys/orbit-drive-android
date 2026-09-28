@@ -27,7 +27,7 @@ import kotlinx.coroutines.delay
     val tick=seconds
     val canChange=game.phase!=Phase.FLYING && game.phase!=Phase.CHARGING
     Dialog(onDismissRequest=onClose,properties=DialogProperties(usePlatformDefaultWidth=false)) {
-        Surface(Modifier.fillMaxSize().safeDrawingPadding(),color=Color(0xff0c1c24)) {
+        Surface(Modifier.fillMaxSize().safeDrawingPadding(),color=Color(0xff0c1c24),contentColor=Color(0xffeef4ff)) {
             Column(Modifier.padding(16.dp)) {
                 Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) { Text("THE CADDYSHACK",fontSize=23.sp,fontWeight=FontWeight.Black);Text("YOUR CREW • YOUR ADVANTAGE",fontSize=10.sp,color=Color(0xff9cdac0)) }
