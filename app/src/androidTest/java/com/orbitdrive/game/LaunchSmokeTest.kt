@@ -45,7 +45,7 @@ class LaunchSmokeTest {
     }
     @Test fun clubhouseAndWeeklyExpeditionOpen() {
         rule.onNodeWithTag("clubhouse").performClick()
-        rule.onNodeWithText("CLUBHOUSE").assertExists()
+        rule.onNodeWithTag("clubhouseTitle").assertExists()
         rule.onNodeWithText("Weekly").performScrollTo().performClick()
         rule.onNodeWithTag("enterExpedition").performClick()
         rule.onNodeWithText("WEEKLY EXPEDITION").assertExists()
