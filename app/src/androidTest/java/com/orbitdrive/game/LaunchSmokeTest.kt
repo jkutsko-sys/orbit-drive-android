@@ -19,9 +19,13 @@ class LaunchSmokeTest {
     private fun screenshot(name:String) {
         rule.waitForIdle()
         val instrumentation=InstrumentationRegistry.getInstrumentation()
-        val dir=java.io.File(instrumentation.targetContext.getExternalFilesDir(null),"screenshots").apply { mkdirs() }
-        val bitmap=instrumentation.uiAutomation.takeScreenshot() ?: error("No screenshot")
-        java.io.File(dir,"$name.png").outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it) }
+        fun shell(command:String) {
+            instrumentation.uiAutomation.executeShellCommand(command).use { descriptor ->
+                java.io.FileInputStream(descriptor.fileDescriptor).use { it.readBytes() }
+            }
+        }
+        shell("mkdir -p /sdcard/Download/orbit-ui-checks")
+        shell("screencap -p /sdcard/Download/orbit-ui-checks/$name.png")
     }
 
     @Test fun swingDoesNotCrash() {

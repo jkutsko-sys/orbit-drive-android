@@ -39,7 +39,7 @@ jobs:
           arch: x86_64
           script: |
             gradle :app:connectedDebugAndroidTest --no-daemon
-            adb pull /sdcard/Android/data/com.orbitdrive.game.preview.labs/files/screenshots screenshots
+            adb pull /sdcard/Download/orbit-ui-checks screenshots
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
